@@ -1,0 +1,22 @@
+[package]
+name = "ascon"
+description = "Implementation of the authenticated encryption scheme Ascon"
+version = "0.1.0"
+authors = ["Sebastian Ramacher <sebastian.ramacher@ait.ac.at>"]
+edition = "2018"
+keywords = ["aead", "ascon,", "encryption"]
+categories = ["cryptography"]
+
+[dependencies]
+aead = { version = "0.4" }
+cipher = "0.3.0-pre.4"
+byteorder = "1.4"
+subtle = "2"
+zeroize = { version = "1", optional = true }
+
+[dev-dependencies]
+hex = "0.4"
+aead = { version = "0.4", features = ["alloc"]}
+
+[features]
+default = ["zeroize"]
