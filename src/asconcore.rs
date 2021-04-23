@@ -205,6 +205,7 @@ impl<R: Parameters> Core<R> {
         self.state.x4 ^= 1;
     }
 
+    /*
     fn process_encrypt(&mut self, ciphertext: &mut [u8], message: &[u8]) {
         let mut len = message.len();
         let mut rdr = Cursor::new(message);
@@ -237,6 +238,7 @@ impl<R: Parameters> Core<R> {
                 .unwrap();
         }
     }
+    */
 
     fn process_encrypt_inplace(&mut self, message: &mut [u8]) {
         let mut len = message.len();
@@ -274,6 +276,7 @@ impl<R: Parameters> Core<R> {
         }
     }
 
+    /*
     fn process_decrypt(&mut self, message: &mut [u8], ciphertext: &[u8]) {
         let mut len = ciphertext.len();
         let mut rdr = Cursor::new(ciphertext);
@@ -311,6 +314,7 @@ impl<R: Parameters> Core<R> {
             *px = clear(*px, len) ^ cx;
         }
     }
+    */
 
     fn process_decrypt_inplace(&mut self, ciphertext: &mut [u8]) {
         let mut len = ciphertext.len();
@@ -366,6 +370,7 @@ impl<R: Parameters> Core<R> {
         self.state.x4 ^= self.key[1];
     }
 
+    /*
     pub fn encrypt(
         &mut self,
         ciphertext: &mut [u8],
@@ -382,6 +387,7 @@ impl<R: Parameters> Core<R> {
         wrr.write_u64::<BigEndian>(self.state.x4).unwrap();
         Tag::from(tag)
     }
+    */
 
     pub fn encrypt_inplace(&mut self, message: &mut [u8], associated_data: &[u8]) -> Tag {
         self.process_associated_data(associated_data);
@@ -395,6 +401,7 @@ impl<R: Parameters> Core<R> {
         Tag::from(tag)
     }
 
+    /*
     pub fn decrypt(
         &mut self,
         message: &mut [u8],
@@ -417,6 +424,7 @@ impl<R: Parameters> Core<R> {
             Err(Error)
         }
     }
+    */
 
     pub fn decrypt_inplace(
         &mut self,
