@@ -42,7 +42,6 @@ impl Parameters for Parameters128A {
     const IV: Word = 0x80800c0800000000;
 }
 
-
 #[inline(always)]
 fn pad(n: usize) -> Word {
     (0x80_u64) << (56 - 8 * n)
