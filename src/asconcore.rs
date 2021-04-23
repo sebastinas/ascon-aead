@@ -30,13 +30,12 @@ fn clear(word: Word, n: usize) -> Word {
     word & (0x00ffffffffffffff >> (n * 8 - 8))
 }
 
-#[derive(Debug)]
-pub(crate) struct State {
-    pub x0: Word,
-    pub x1: Word,
-    pub x2: Word,
-    pub x3: Word,
-    pub x4: Word,
+struct State {
+    x0: Word,
+    x1: Word,
+    x2: Word,
+    x3: Word,
+    x4: Word,
 }
 
 impl State {
