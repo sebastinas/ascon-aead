@@ -20,6 +20,29 @@ pub type Tag = GenericArray<u8, U16>;
 
 type Word = u64;
 
+/// Parameters of an Ascon instance
+pub trait Parameters {
+    /// Number of bytes to process per round
+    const COUNT: usize;
+    /// Initialization vector used to initialize Ascon's state
+    const IV: Word;
+}
+
+/// Parameters for Ascon128
+pub struct Parameters128;
+impl Parameters for Parameters128 {
+    const COUNT: usize = 8;
+    const IV: Word = 0x80400c0600000000;
+}
+
+/// Paramters for Ascon128A
+pub struct Parameters128A;
+impl Parameters for Parameters128A {
+    const COUNT: usize = 16;
+    const IV: Word = 0x80800c0800000000;
+}
+
+
 #[inline(always)]
 fn pad(n: usize) -> Word {
     (0x80_u64) << (56 - 8 * n)
@@ -30,6 +53,7 @@ fn clear(word: Word, n: usize) -> Word {
     word & (0x00ffffffffffffff >> (n * 8 - 8))
 }
 
+/// The state of Ascon's permutation
 struct State {
     x0: Word,
     x1: Word,
@@ -39,6 +63,7 @@ struct State {
 }
 
 impl State {
+    /// Permute with a single round
     fn round(&mut self, c: Word) {
         // S-box layer
         self.x0 ^= self.x4;
@@ -69,6 +94,7 @@ impl State {
         self.x4 = t.x4 ^ self.x4.rotate_right(7);
     }
 
+    /// Permutation with 12 rounds
     fn permute_12(&mut self) {
         self.round(0xf0);
         self.round(0xe1);
@@ -84,6 +110,7 @@ impl State {
         self.round(0x4b);
     }
 
+    /// Pmermutation with 8 rounds
     fn permute_8(&mut self) {
         self.round(0xb4);
         self.round(0xa5);
@@ -95,6 +122,7 @@ impl State {
         self.round(0x4b);
     }
 
+    /// Permutation with 6 rounds
     fn permute_6(&mut self) {
         self.round(0x96);
         self.round(0x87);
@@ -105,23 +133,7 @@ impl State {
     }
 }
 
-pub trait Parameters {
-    const COUNT: usize;
-    const IV: Word;
-}
-
-pub struct Parameters128;
-impl Parameters for Parameters128 {
-    const COUNT: usize = 8;
-    const IV: Word = 0x80400c0600000000;
-}
-
-pub struct Parameters128A;
-impl Parameters for Parameters128A {
-    const COUNT: usize = 16;
-    const IV: Word = 0x80800c0800000000;
-}
-
+/// Core implementation of Ascon for one encryption/decryption operation
 pub struct Core<R: Parameters> {
     state: State,
     key: [u64; 2],
@@ -146,8 +158,8 @@ impl<R: Parameters> Core<R> {
         state.x4 ^= key_2;
 
         Self {
+            state,
             key: [key_1, key_2],
-            state: state,
             rate: PhantomData,
         }
     }
