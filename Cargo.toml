@@ -4,6 +4,7 @@ description = "Implementation of the authenticated encryption scheme Ascon"
 version = "0.1.0"
 authors = ["Sebastian Ramacher <sebastian.ramacher@ait.ac.at>"]
 license = "MIT"
+repository = "https://github.com/sebastinas/rust-ascon"
 edition = "2018"
 keywords = ["aead", "ascon,", "encryption"]
 categories = ["cryptography"]
