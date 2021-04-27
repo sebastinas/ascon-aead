@@ -54,7 +54,7 @@ fn clear(word: Word, n: usize) -> Word {
 
 #[cfg(test)]
 mod tests {
-    use crate::asconcore::{clear, pad};
+    use super::{clear, pad};
 
     #[test]
     fn pad_0to7() {
@@ -136,7 +136,7 @@ impl<P: Parameters> State<P> {
         self.round(0x4b);
     }
 
-    /// Pmermutation with 8 rounds
+    /// Permutation with 8 rounds
     fn permute_8(&mut self) {
         self.round(0xb4);
         self.round(0xa5);
@@ -158,6 +158,7 @@ impl<P: Parameters> State<P> {
         self.round(0x4b);
     }
 
+    /// Permutation with 6 or 8 rounds based on the parameters
     #[inline(always)]
     fn permute(&mut self) {
         if P::COUNT == 8 {
@@ -227,7 +228,7 @@ impl<P: Parameters> Core<P> {
             self.state.permute();
         }
 
-        // domain seperation
+        // domain separation
         self.state.x4 ^= 1;
     }
 

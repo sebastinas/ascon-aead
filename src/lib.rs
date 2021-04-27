@@ -18,12 +18,15 @@ pub const P_MAX: usize = 1 << 36;
 /// Maximum length of ciphertext
 pub const C_MAX: usize = (1 << 36) + 16;
 
+/// Ascon generic over some Parameters
 pub struct Ascon<P: Parameters> {
     key: Key,
     parameters: PhantomData<P>,
 }
 
+/// Ascon128
 pub type Ascon128 = Ascon<Parameters128>;
+/// Ascon128A
 pub type Ascon128A = Ascon<Parameters128A>;
 
 #[cfg(feature = "zeroize")]
