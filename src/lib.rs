@@ -2,8 +2,9 @@ mod asconcore;
 
 pub use aead::{self, AeadCore, AeadInPlace, Buffer, Error, NewAead};
 use asconcore::Core;
-pub use asconcore::{Key, Nonce, Parameters128, Parameters128A, Tag};
+pub use asconcore::{Key, Nonce, Parameters, Parameters128, Parameters128A, Tag};
 use cipher::consts::{U0, U16};
+use std::marker::PhantomData;
 
 #[cfg(feature = "zeroize")]
 use zeroize::Zeroize;
@@ -17,32 +18,39 @@ pub const P_MAX: usize = 1 << 36;
 /// Maximum length of ciphertext
 pub const C_MAX: usize = (1 << 36) + 16;
 
-pub struct Ascon {
+pub struct Ascon<P: Parameters> {
     key: Key,
+    parameters: PhantomData<P>,
 }
 
+pub type Ascon128 = Ascon<Parameters128>;
+pub type Ascon128A = Ascon<Parameters128A>;
+
 #[cfg(feature = "zeroize")]
-impl Drop for Ascon {
+impl<P: Parameters> Drop for Ascon<P> {
     fn drop(&mut self) {
         self.key.zeroize();
     }
 }
 
-impl NewAead for Ascon {
+impl<P: Parameters> NewAead for Ascon<P> {
     type KeySize = U16;
 
     fn new(key: &Key) -> Self {
-        Self { key: *key }
+        Self {
+            key: *key,
+            parameters: PhantomData,
+        }
     }
 }
 
-impl AeadCore for Ascon {
+impl<P: Parameters> AeadCore for Ascon<P> {
     type NonceSize = U16;
     type TagSize = U16;
     type CiphertextOverhead = U0;
 }
 
-impl AeadInPlace for Ascon {
+impl<P: Parameters> AeadInPlace for Ascon<P> {
     fn encrypt_in_place_detached(
         &self,
         nonce: &Nonce,
@@ -53,7 +61,7 @@ impl AeadInPlace for Ascon {
             return Err(Error);
         }
 
-        let mut core = Core::<Parameters128>::new(&self.key, nonce);
+        let mut core = Core::<P>::new(&self.key, nonce);
         let tag = core.encrypt_inplace(buffer, associated_data);
         Ok(tag)
     }
@@ -69,7 +77,7 @@ impl AeadInPlace for Ascon {
             return Err(Error);
         }
 
-        let mut core = Core::<Parameters128>::new(&self.key, nonce);
+        let mut core = Core::<P>::new(&self.key, nonce);
         core.decrypt_inplace(buffer, associated_data, tag)?;
         Ok(())
     }
