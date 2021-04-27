@@ -53,15 +53,16 @@ fn clear(word: Word, n: usize) -> Word {
 }
 
 /// The state of Ascon's permutation
-struct State {
+struct State<P: Parameters> {
     x0: Word,
     x1: Word,
     x2: Word,
     x3: Word,
     x4: Word,
+    parameters: PhantomData<P>,
 }
 
-impl State {
+impl<P: Parameters> State<P> {
     /// Permute with a single round
     fn round(&mut self, c: Word) {
         // S-box layer
@@ -69,28 +70,26 @@ impl State {
         self.x2 ^= self.x1 ^ c; // with round constant
         self.x4 ^= self.x3;
 
-        let mut t = State {
-            x0: self.x0 ^ (!self.x1 & self.x2),
-            x1: self.x1 ^ (!self.x2 & self.x3),
-            x2: self.x2 ^ (!self.x3 & self.x4),
-            x3: self.x3 ^ (!self.x4 & self.x0),
-            x4: self.x4 ^ (!self.x0 & self.x1),
-        };
-        t.x1 ^= t.x0;
-        t.x3 ^= t.x2;
-        t.x0 ^= t.x4;
+        let tx0 = self.x0 ^ (!self.x1 & self.x2);
+        let tx1 = self.x1 ^ (!self.x2 & self.x3);
+        let tx2 = self.x2 ^ (!self.x3 & self.x4);
+        let tx3 = self.x3 ^ (!self.x4 & self.x0);
+        let tx4 = self.x4 ^ (!self.x0 & self.x1);
+        let tx1 = tx1 ^ tx0;
+        let tx3 = tx3 ^ tx2;
+        let tx0 = tx0 ^ tx4;
 
         // linear layer
-        self.x0 = t.x0 ^ t.x0.rotate_right(9);
-        self.x1 = t.x1 ^ t.x1.rotate_right(22);
-        self.x2 = t.x2 ^ t.x2.rotate_right(5);
-        self.x3 = t.x3 ^ t.x3.rotate_right(7);
-        self.x4 = t.x4 ^ t.x4.rotate_right(34);
-        self.x0 = t.x0 ^ self.x0.rotate_right(19);
-        self.x1 = t.x1 ^ self.x1.rotate_right(39);
-        self.x2 = !(t.x2 ^ self.x2.rotate_right(1));
-        self.x3 = t.x3 ^ self.x3.rotate_right(10);
-        self.x4 = t.x4 ^ self.x4.rotate_right(7);
+        self.x0 = tx0 ^ tx0.rotate_right(9);
+        self.x1 = tx1 ^ tx1.rotate_right(22);
+        self.x2 = tx2 ^ tx2.rotate_right(5);
+        self.x3 = tx3 ^ tx3.rotate_right(7);
+        self.x4 = tx4 ^ tx4.rotate_right(34);
+        self.x0 = tx0 ^ self.x0.rotate_right(19);
+        self.x1 = tx1 ^ self.x1.rotate_right(39);
+        self.x2 = !(tx2 ^ self.x2.rotate_right(1));
+        self.x3 = tx3 ^ self.x3.rotate_right(10);
+        self.x4 = tx4 ^ self.x4.rotate_right(7);
     }
 
     /// Permutation with 12 rounds
@@ -130,26 +129,35 @@ impl State {
         self.round(0x5a);
         self.round(0x4b);
     }
+
+    #[inline(always)]
+    fn permute(&mut self) {
+        if P::COUNT == 8 {
+            self.permute_6();
+        } else {
+            self.permute_8();
+        }
+    }
 }
 
 /// Core implementation of Ascon for one encryption/decryption operation
-pub struct Core<R: Parameters> {
-    state: State,
+pub struct Core<P: Parameters> {
+    state: State<P>,
     key: [u64; 2],
-    rate: PhantomData<R>,
 }
 
-impl<R: Parameters> Core<R> {
+impl<P: Parameters> Core<P> {
     pub fn new(key: &Key, nonce: &Nonce) -> Self {
         let key_1 = u64::from_be_bytes(key[..8].try_into().unwrap());
         let key_2 = u64::from_be_bytes(key[8..].try_into().unwrap());
 
         let mut state = State {
-            x0: R::IV,
+            x0: P::IV,
             x1: key_1,
             x2: key_2,
             x3: u64::from_be_bytes(nonce[..8].try_into().unwrap()),
             x4: u64::from_be_bytes(nonce[8..].try_into().unwrap()),
+            parameters: PhantomData,
         };
 
         state.permute_12();
@@ -159,16 +167,6 @@ impl<R: Parameters> Core<R> {
         Self {
             state,
             key: [key_1, key_2],
-            rate: PhantomData,
-        }
-    }
-
-    #[inline(always)]
-    fn permute(&mut self) {
-        if R::COUNT == 8 {
-            self.state.permute_6();
-        } else {
-            self.state.permute_8();
         }
     }
 
@@ -176,18 +174,18 @@ impl<R: Parameters> Core<R> {
         let mut len = associated_data.len();
         if len > 0 {
             let mut rdr = Cursor::new(associated_data);
-            while len >= R::COUNT {
+            while len >= P::COUNT {
                 // process full block of associated data
                 self.state.x0 ^= rdr.read_u64::<BigEndian>().unwrap();
-                if R::COUNT == 16 {
+                if P::COUNT == 16 {
                     self.state.x1 ^= rdr.read_u64::<BigEndian>().unwrap();
                 }
-                self.permute();
-                len -= R::COUNT;
+                self.state.permute();
+                len -= P::COUNT;
             }
 
             // process partial block if it exists
-            let px = if R::COUNT == 16 && len >= 8 {
+            let px = if P::COUNT == 16 && len >= 8 {
                 self.state.x0 ^= rdr.read_u64::<BigEndian>().unwrap();
                 len -= 8;
                 &mut self.state.x1
@@ -198,7 +196,7 @@ impl<R: Parameters> Core<R> {
             if len > 0 {
                 *px ^= rdr.read_uint::<BigEndian>(len).unwrap() << ((8 - len) * 8);
             }
-            self.permute();
+            self.state.permute();
         }
 
         // domain seperation
@@ -210,20 +208,20 @@ impl<R: Parameters> Core<R> {
         let mut len = message.len();
         let mut rdr = Cursor::new(message);
         let mut wrr = Cursor::new(ciphertext);
-        while len >= R::COUNT {
+        while len >= P::COUNT {
             // process full block of message
             self.state.x0 ^= rdr.read_u64::<BigEndian>().unwrap();
             wrr.write_u64::<BigEndian>(self.state.x0).unwrap();
-            if R::COUNT == 16 {
+            if P::COUNT == 16 {
                 self.state.x1 ^= rdr.read_u64::<BigEndian>().unwrap();
                 wrr.write_u64::<BigEndian>(self.state.x1).unwrap();
             }
-            self.permute();
-            len -= R::COUNT;
+            self.state.permute();
+            len -= P::COUNT;
         }
 
         // process partial block if it exists
-        let px = if R::COUNT == 16 && len >= 8 {
+        let px = if P::COUNT == 16 && len >= 8 {
             self.state.x0 ^= rdr.read_u64::<BigEndian>().unwrap();
             wrr.write_u64::<BigEndian>(self.state.x0).unwrap();
             len -= 8;
@@ -243,22 +241,22 @@ impl<R: Parameters> Core<R> {
     fn process_encrypt_inplace(&mut self, message: &mut [u8]) {
         let mut len = message.len();
         let mut rdr = Cursor::new(message);
-        while len >= R::COUNT {
+        while len >= P::COUNT {
             // process full block of message
             self.state.x0 ^= rdr.read_u64::<BigEndian>().unwrap();
             rdr.seek(SeekFrom::Current(-8)).unwrap();
             rdr.write_u64::<BigEndian>(self.state.x0).unwrap();
-            if R::COUNT == 16 {
+            if P::COUNT == 16 {
                 self.state.x1 ^= rdr.read_u64::<BigEndian>().unwrap();
                 rdr.seek(SeekFrom::Current(-8)).unwrap();
                 rdr.write_u64::<BigEndian>(self.state.x1).unwrap();
             }
-            self.permute();
-            len -= R::COUNT;
+            self.state.permute();
+            len -= P::COUNT;
         }
 
         // process partial block if it exists
-        let px = if R::COUNT == 16 && len >= 8 {
+        let px = if P::COUNT == 16 && len >= 8 {
             self.state.x0 ^= rdr.read_u64::<BigEndian>().unwrap();
             rdr.seek(SeekFrom::Current(-8)).unwrap();
             rdr.write_u64::<BigEndian>(self.state.x0).unwrap();
@@ -281,22 +279,22 @@ impl<R: Parameters> Core<R> {
         let mut len = ciphertext.len();
         let mut rdr = Cursor::new(ciphertext);
         let mut wrr = Cursor::new(message);
-        while len >= R::COUNT {
+        while len >= P::COUNT {
             // process full block of ciphertext
             let cx = rdr.read_u64::<BigEndian>().unwrap();
             wrr.write_u64::<BigEndian>(self.state.x0 ^ cx).unwrap();
             self.state.x0 = cx;
-            if R::COUNT == 16 {
+            if P::COUNT == 16 {
                 let cx = rdr.read_u64::<BigEndian>().unwrap();
                 wrr.write_u64::<BigEndian>(self.state.x1 ^ cx).unwrap();
                 self.state.x1 = cx;
             }
-            self.permute();
-            len -= R::COUNT;
+            self.state.permute();
+            len -= P::COUNT;
         }
 
         // process partial block if it exists
-        let px = if R::COUNT == 16 && len >= 8 {
+        let px = if P::COUNT == 16 && len >= 8 {
             let cx = rdr.read_u64::<BigEndian>().unwrap();
             wrr.write_u64::<BigEndian>(self.state.x0 ^ cx).unwrap();
             self.state.x0 = cx;
@@ -319,24 +317,24 @@ impl<R: Parameters> Core<R> {
     fn process_decrypt_inplace(&mut self, ciphertext: &mut [u8]) {
         let mut len = ciphertext.len();
         let mut rdr = Cursor::new(ciphertext);
-        while len >= R::COUNT {
+        while len >= P::COUNT {
             // process full block of ciphertext
             let cx = rdr.read_u64::<BigEndian>().unwrap();
             rdr.seek(SeekFrom::Current(-8)).unwrap();
             rdr.write_u64::<BigEndian>(self.state.x0 ^ cx).unwrap();
             self.state.x0 = cx;
-            if R::COUNT == 16 {
+            if P::COUNT == 16 {
                 let cx = rdr.read_u64::<BigEndian>().unwrap();
                 rdr.seek(SeekFrom::Current(-8)).unwrap();
                 rdr.write_u64::<BigEndian>(self.state.x1 ^ cx).unwrap();
                 self.state.x1 = cx;
             }
-            self.permute();
-            len -= R::COUNT;
+            self.state.permute();
+            len -= P::COUNT;
         }
 
         // process partial block if it exists
-        let px = if R::COUNT == 16 && len >= 8 {
+        let px = if P::COUNT == 16 && len >= 8 {
             let cx = rdr.read_u64::<BigEndian>().unwrap();
             rdr.seek(SeekFrom::Current(-8)).unwrap();
             rdr.write_u64::<BigEndian>(self.state.x0 ^ cx).unwrap();
@@ -358,10 +356,10 @@ impl<R: Parameters> Core<R> {
     }
 
     fn process_final(&mut self) {
-        if R::COUNT == 8 {
+        if P::COUNT == 8 {
             self.state.x1 ^= self.key[0];
             self.state.x2 ^= self.key[1];
-        } else if R::COUNT == 16 {
+        } else if P::COUNT == 16 {
             self.state.x2 ^= self.key[0];
             self.state.x3 ^= self.key[1];
         }
@@ -450,7 +448,7 @@ impl<R: Parameters> Core<R> {
 }
 
 #[cfg(feature = "zeroize")]
-impl<R: Parameters> Drop for Core<R> {
+impl<P: Parameters> Drop for Core<P> {
     fn drop(&mut self) {
         self.key.zeroize();
     }
