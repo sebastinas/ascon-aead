@@ -4,9 +4,11 @@ use ascon::{
     Parameters, Parameters128, Parameters128A,
 };
 use hex;
+use spectral::prelude::{asserting, ResultAssertions};
 use std::collections::HashMap;
 use std::include_str;
 
+#[derive(Debug)]
 struct TestVector {
     key: ascon::Key,
     nonce: ascon::Nonce,
@@ -36,28 +38,27 @@ impl TestVector {
 
 fn run_tv<P: Parameters>(tv: TestVector) {
     let core = ascon::Ascon::<P>::new(&tv.key);
-    let ciphertext = core
-        .encrypt(
+    asserting(format!("Test Vector {:?} encryption", tv).as_str())
+        .that(&core.encrypt(
             &tv.nonce,
             Payload {
                 msg: &tv.plaintext,
                 aad: &tv.associated_data,
             },
-        )
-        .unwrap();
+        ))
+        .is_ok()
+        .is_equal_to(&tv.ciphertext);
 
-    let plaintext = core
-        .decrypt(
+    asserting(format!("Test Vector {:?} decryption", tv).as_str())
+        .that(&core.decrypt(
             &tv.nonce,
             Payload {
                 msg: &tv.ciphertext,
                 aad: &tv.associated_data,
             },
-        )
-        .unwrap();
-
-    assert_eq!(ciphertext, tv.ciphertext);
-    assert_eq!(plaintext, tv.plaintext);
+        ))
+        .is_ok()
+        .is_equal_to(&tv.plaintext);
 }
 
 fn parse_tv(tvs: &str) -> TestVector {
