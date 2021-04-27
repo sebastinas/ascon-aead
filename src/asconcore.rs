@@ -47,6 +47,23 @@ fn pad(n: usize) -> Word {
     (0x80_u64) << (56 - 8 * n)
 }
 
+#[cfg(test)]
+mod tests {
+    use crate::asconcore::pad;
+
+    #[test]
+    fn pad_0to7() {
+        assert_eq!(pad(0), 0x8000000000000000);
+        assert_eq!(pad(1), 0x80000000000000);
+        assert_eq!(pad(2), 0x800000000000);
+        assert_eq!(pad(3), 0x8000000000);
+        assert_eq!(pad(4), 0x80000000);
+        assert_eq!(pad(5), 0x800000);
+        assert_eq!(pad(6), 0x8000);
+        assert_eq!(pad(7), 0x80);
+    }
+}
+
 #[inline(always)]
 fn clear(word: Word, n: usize) -> Word {
     word & (0x00ffffffffffffff >> (n * 8 - 8))
@@ -269,7 +286,7 @@ impl<P: Parameters> Core<P> {
         if len > 0 {
             *px ^= rdr.read_uint::<BigEndian>(len).unwrap() << ((8 - len) * 8);
             rdr.seek(SeekFrom::Current(-(len as i64))).unwrap();
-            rdr.write_uint::<BigEndian>(self.state.x0 >> ((8 - len) * 8), len)
+            rdr.write_uint::<BigEndian>(*px >> ((8 - len) * 8), len)
                 .unwrap();
         }
     }
