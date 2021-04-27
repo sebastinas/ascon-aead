@@ -47,9 +47,14 @@ fn pad(n: usize) -> Word {
     (0x80_u64) << (56 - 8 * n)
 }
 
+#[inline(always)]
+fn clear(word: Word, n: usize) -> Word {
+    word & (0x00ffffffffffffff >> (n * 8 - 8))
+}
+
 #[cfg(test)]
 mod tests {
-    use crate::asconcore::pad;
+    use crate::asconcore::{clear, pad};
 
     #[test]
     fn pad_0to7() {
@@ -62,11 +67,17 @@ mod tests {
         assert_eq!(pad(6), 0x8000);
         assert_eq!(pad(7), 0x80);
     }
-}
 
-#[inline(always)]
-fn clear(word: Word, n: usize) -> Word {
-    word & (0x00ffffffffffffff >> (n * 8 - 8))
+    #[test]
+    fn clear_0to7() {
+        assert_eq!(clear(0x0123456789abcdef, 1), 0x23456789abcdef);
+        assert_eq!(clear(0x0123456789abcdef, 2), 0x456789abcdef);
+        assert_eq!(clear(0x0123456789abcdef, 3), 0x6789abcdef);
+        assert_eq!(clear(0x0123456789abcdef, 4), 0x89abcdef);
+        assert_eq!(clear(0x0123456789abcdef, 5), 0xabcdef);
+        assert_eq!(clear(0x0123456789abcdef, 6), 0xcdef);
+        assert_eq!(clear(0x0123456789abcdef, 7), 0xef);
+    }
 }
 
 /// The state of Ascon's permutation
