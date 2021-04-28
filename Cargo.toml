@@ -8,7 +8,7 @@ repository = "https://github.com/sebastinas/rust-ascon"
 homepage = "https://github.com/sebastinas/rust-ascon"
 readme = "README.md"
 edition = "2018"
-keywords = ["aead", "ascon,", "encryption"]
+keywords = ["aead", "ascon", "encryption"]
 categories = ["cryptography"]
 exclude = [".github/", ".gitignore"]
 
