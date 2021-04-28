@@ -1,10 +1,12 @@
+#![no_std]
+
 mod asconcore;
 
 pub use aead::{self, AeadCore, AeadInPlace, Buffer, Error, NewAead};
 use asconcore::Core;
 pub use asconcore::{Key, Nonce, Parameters, Parameters128, Parameters128A, Tag};
 use cipher::consts::{U0, U16};
-use std::marker::PhantomData;
+use core::marker::PhantomData;
 
 #[cfg(feature = "zeroize")]
 use zeroize::Zeroize;
