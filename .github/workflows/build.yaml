@@ -6,29 +6,21 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  test_stable:
-    name: Test (stable toolchain)
+  test:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        toolchain:
+          - stable
+          - beta
+          - nightly
+    name: Test (${{matrix.toolchain}} toolchain)
     steps:
       - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: stable
-          override: true
-      - uses: actions-rs/cargo@v1
-        with:
-          command: test
-
-  test_nightly:
-    name: Test (nightly toolchain)
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: nightly
+          toolchain: ${{matrix.toolchain}}
           override: true
       - uses: actions-rs/cargo@v1
         with:
