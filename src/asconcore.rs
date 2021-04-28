@@ -134,6 +134,13 @@ impl<P: Parameters> State<P> {
         self.round(0x4b);
     }
 
+    /// Permutation with 8 rounds and application of the key at the end
+    fn permute_12_and_apply(&mut self, k0: u64, k1: u64) {
+        self.permute_12();
+        self.x3 ^= k0;
+        self.x4 ^= k1;
+    }
+
     /// Permutation with 8 rounds
     fn permute_8(&mut self) {
         self.round(0xb4);
@@ -187,10 +194,7 @@ impl<P: Parameters> Core<P> {
             parameters: PhantomData,
         };
 
-        state.permute_12();
-        state.x3 ^= key_1;
-        state.x4 ^= key_2;
-
+        state.permute_12_and_apply(key_1, key_2);
         Self {
             state,
             key: [key_1, key_2],
@@ -390,9 +394,7 @@ impl<P: Parameters> Core<P> {
             self.state.x2 ^= self.key[0];
             self.state.x3 ^= self.key[1];
         }
-        self.state.permute_12();
-        self.state.x3 ^= self.key[0];
-        self.state.x4 ^= self.key[1];
+        self.state.permute_12_and_apply(self.key[0], self.key[1]);
     }
 
     /*
