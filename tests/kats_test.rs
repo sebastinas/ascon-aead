@@ -1,4 +1,4 @@
-use ascon::{
+use ascon_aead::{
     aead::{Aead, NewAead, Payload},
     Ascon, Key, Nonce, Parameters, Parameters128, Parameters128a,
 };

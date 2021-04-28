@@ -9,8 +9,8 @@
 //! Simple usage (allocating, no associated data):
 //!
 //! ```
-//! use ascon::{Ascon128, Key, Nonce}; // Or `Ascon128a`
-//! use ascon::aead::{Aead, NewAead};
+//! use ascon_aead::{Ascon128, Key, Nonce}; // Or `Ascon128a`
+//! use ascon_aead::aead::{Aead, NewAead};
 //!
 //! let key = Key::from_slice(b"very secret key.");
 //! let cipher = Ascon128::new(key);
@@ -35,9 +35,9 @@
 //! ```
 //! # #[cfg(feature = "heapless")]
 //! # {
-//! use ascon::{Ascon128, Key, Nonce}; // Or `Ascon128a`
-//! use ascon::aead::{AeadInPlace, NewAead};
-//! use ascon::aead::heapless::{Vec, consts::U128};
+//! use ascon_aead::{Ascon128, Key, Nonce}; // Or `Ascon128a`
+//! use ascon_aead::aead::{AeadInPlace, NewAead};
+//! use ascon_aead::aead::heapless::{Vec, consts::U128};
 //!
 //! let key = Key::from_slice(b"very secret key.");
 //! let cipher = Ascon128::new(key);
