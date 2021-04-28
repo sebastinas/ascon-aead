@@ -1,4 +1,69 @@
+//! [Authenticated Encryption and Associated Data (AEAD)][1] with [Ascon][2]
+//!
+//! ## Security Notes
+//!
+//! This crate has received no security audit. Use at your own risk.
+//!
+//! # Usage
+//!
+//! Simple usage (allocating, no associated data):
+//!
+//! ```
+//! use ascon::{Ascon128, Key, Nonce}; // Or `Ascon128a`
+//! use ascon::aead::{Aead, NewAead};
+//!
+//! let key = Key::from_slice(b"very secret key.");
+//! let cipher = Ascon128::new(key);
+//!
+//! let nonce = Nonce::from_slice(b"unique nonce 012"); // 128-bits; unique per message
+//!
+//! let ciphertext = cipher.encrypt(nonce, b"plaintext message".as_ref())
+//!     .expect("encryption failure!"); // NOTE: handle this error to avoid panics!
+//!
+//! let plaintext = cipher.decrypt(nonce, ciphertext.as_ref())
+//!     .expect("decryption failure!"); // NOTE: handle this error to avoid panics!
+//!
+//! assert_eq!(&plaintext, b"plaintext message");
+//! ```
+//!
+//! ## In-place Usage (eliminates `alloc` requirement)
+//!
+//! Similar to other crates implementing [`aead`] interfaces, this crate also offers an optional
+//! `alloc` feature which can be disabled in e.g. microcontroller environments that don't have a
+//! heap. See [`aead::AeadInPlace`] for more details.
+//!
+//! ```
+//! # #[cfg(feature = "heapless")]
+//! # {
+//! use ascon::{Ascon128, Key, Nonce}; // Or `Ascon128a`
+//! use ascon::aead::{AeadInPlace, NewAead};
+//! use ascon::aead::heapless::{Vec, consts::U128};
+//!
+//! let key = Key::from_slice(b"very secret key.");
+//! let cipher = Ascon128::new(key);
+//!
+//! let nonce = Nonce::from_slice(b"unique nonce 012"); // 128-bits; unique per message
+//!
+//! let mut buffer: Vec<u8, U128> = Vec::new(); // Buffer needs 16-bytes overhead for authentication tag
+//! buffer.extend_from_slice(b"plaintext message");
+//!
+//! // Encrypt `buffer` in-place, replacing the plaintext contents with ciphertext
+//! cipher.encrypt_in_place(nonce, b"", &mut buffer).expect("encryption failure!");
+//!
+//! // `buffer` now contains the message ciphertext
+//! assert_ne!(&buffer, b"plaintext message");
+//!
+//! // Decrypt `buffer` in-place, replacing its ciphertext context with the original plaintext
+//! cipher.decrypt_in_place(nonce, b"", &mut buffer).expect("decryption failure!");
+//! assert_eq!(&buffer, b"plaintext message");
+//! # }
+//! ```
+//!
+//! [1]: https://en.wikipedia.org/wiki/Authenticated_encryption
+//! [2]: https://ascon.iaik.tugraz.at/index.html
+
 #![no_std]
+#![warn(missing_docs)]
 
 mod asconcore;
 
@@ -12,14 +77,18 @@ use core::marker::PhantomData;
 use zeroize::Zeroize;
 
 /// Ascon generic over some Parameters
+///
+/// This type is generic to support substituting various Ascon parameter sets. It is not intended to
+/// use directly. Use the [`Ascon128`] and [`Ascon128a`] type aliases instead.
+#[derive(Clone)]
 pub struct Ascon<P: Parameters> {
     key: Key,
     parameters: PhantomData<P>,
 }
 
-/// Ascon128
+/// Ascon-128
 pub type Ascon128 = Ascon<Parameters128>;
-/// Ascon128A
+/// Ascon-128a
 pub type Ascon128a = Ascon<Parameters128a>;
 
 #[cfg(feature = "zeroize")]
