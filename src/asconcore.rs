@@ -40,9 +40,9 @@ impl Parameters for Parameters128 {
     const C_MAX: u64 = (1 << 67) + 16;
 }
 
-/// Paramters for Ascon128A
-pub struct Parameters128A;
-impl Parameters for Parameters128A {
+/// Paramters for Ascon-128a
+pub struct Parameters128a;
+impl Parameters for Parameters128a {
     const COUNT: usize = 16;
     const IV: u64 = 0x80800c0800000000;
     const A_MAX: u64 = 1 << 68;

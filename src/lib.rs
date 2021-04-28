@@ -4,7 +4,7 @@ mod asconcore;
 
 pub use aead::{self, AeadCore, AeadInPlace, Buffer, Error, NewAead};
 use asconcore::Core;
-pub use asconcore::{Key, Nonce, Parameters, Parameters128, Parameters128A, Tag};
+pub use asconcore::{Key, Nonce, Parameters, Parameters128, Parameters128a, Tag};
 use cipher::consts::{U0, U16};
 use core::marker::PhantomData;
 
@@ -20,7 +20,7 @@ pub struct Ascon<P: Parameters> {
 /// Ascon128
 pub type Ascon128 = Ascon<Parameters128>;
 /// Ascon128A
-pub type Ascon128A = Ascon<Parameters128A>;
+pub type Ascon128a = Ascon<Parameters128a>;
 
 #[cfg(feature = "zeroize")]
 impl<P: Parameters> Drop for Ascon<P> {
