@@ -65,8 +65,7 @@ impl<P: Parameters> AeadInPlace for Ascon<P> {
         }
 
         let mut core = Core::<P>::new(&self.key, nonce);
-        let tag = core.encrypt_inplace(buffer, associated_data);
-        Ok(tag)
+        Ok(core.encrypt_inplace(buffer, associated_data))
     }
 
     fn decrypt_in_place_detached(
@@ -81,7 +80,6 @@ impl<P: Parameters> AeadInPlace for Ascon<P> {
         }
 
         let mut core = Core::<P>::new(&self.key, nonce);
-        core.decrypt_inplace(buffer, associated_data, tag)?;
-        Ok(())
+        core.decrypt_inplace(buffer, associated_data, tag)
     }
 }
