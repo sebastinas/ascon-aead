@@ -18,37 +18,35 @@ pub type Nonce = GenericArray<u8, U16>;
 /// Ascon tags
 pub type Tag = GenericArray<u8, U16>;
 
-type Word = u64;
-
 /// Parameters of an Ascon instance
 pub trait Parameters {
     /// Number of bytes to process per round
     const COUNT: usize;
     /// Initialization vector used to initialize Ascon's state
-    const IV: Word;
+    const IV: u64;
 }
 
 /// Parameters for Ascon128
 pub struct Parameters128;
 impl Parameters for Parameters128 {
     const COUNT: usize = 8;
-    const IV: Word = 0x80400c0600000000;
+    const IV: u64 = 0x80400c0600000000;
 }
 
 /// Paramters for Ascon128A
 pub struct Parameters128A;
 impl Parameters for Parameters128A {
     const COUNT: usize = 16;
-    const IV: Word = 0x80800c0800000000;
+    const IV: u64 = 0x80800c0800000000;
 }
 
 #[inline(always)]
-fn pad(n: usize) -> Word {
+fn pad(n: usize) -> u64 {
     (0x80_u64) << (56 - 8 * n)
 }
 
 #[inline(always)]
-fn clear(word: Word, n: usize) -> Word {
+fn clear(word: u64, n: usize) -> u64 {
     word & (0x00ffffffffffffff >> (n * 8 - 8))
 }
 
@@ -82,17 +80,17 @@ mod tests {
 
 /// The state of Ascon's permutation
 struct State<P: Parameters> {
-    x0: Word,
-    x1: Word,
-    x2: Word,
-    x3: Word,
-    x4: Word,
+    x0: u64,
+    x1: u64,
+    x2: u64,
+    x3: u64,
+    x4: u64,
     parameters: PhantomData<P>,
 }
 
 impl<P: Parameters> State<P> {
     /// Permute with a single round
-    fn round(&mut self, c: Word) {
+    fn round(&mut self, c: u64) {
         // S-box layer
         self.x0 ^= self.x4;
         self.x2 ^= self.x1 ^ c; // with round constant
