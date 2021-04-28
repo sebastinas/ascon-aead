@@ -8,6 +8,7 @@ repository = "https://github.com/sebastinas/rust-ascon"
 edition = "2018"
 keywords = ["aead", "ascon,", "encryption"]
 categories = ["cryptography"]
+exclude = [".github/", ".gitignore"]
 
 [dependencies]
 aead = { version = ">= 0.3", default-features = false }
