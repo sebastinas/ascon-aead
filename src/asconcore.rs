@@ -92,30 +92,30 @@ impl<P: Parameters> State<P> {
     /// Permute with a single round
     fn round(&mut self, c: u64) {
         // S-box layer
-        self.x0 ^= self.x4;
-        self.x2 ^= self.x1 ^ c; // with round constant
-        self.x4 ^= self.x3;
+        let x0 = self.x0 ^ self.x4;
+        let x2 = self.x2 ^ self.x1 ^ c; // with round constant
+        let x4 = self.x4 ^ self.x3;
 
-        let tx0 = self.x0 ^ (!self.x1 & self.x2);
-        let tx1 = self.x1 ^ (!self.x2 & self.x3);
-        let tx2 = self.x2 ^ (!self.x3 & self.x4);
-        let tx3 = self.x3 ^ (!self.x4 & self.x0);
-        let tx4 = self.x4 ^ (!self.x0 & self.x1);
+        let tx0 = x0 ^ (!self.x1 & x2);
+        let tx1 = self.x1 ^ (!x2 & self.x3);
+        let tx2 = x2 ^ (!self.x3 & x4);
+        let tx3 = self.x3 ^ (!x4 & x0);
+        let tx4 = x4 ^ (!x0 & self.x1);
         let tx1 = tx1 ^ tx0;
         let tx3 = tx3 ^ tx2;
         let tx0 = tx0 ^ tx4;
 
         // linear layer
-        self.x0 = tx0 ^ tx0.rotate_right(9);
-        self.x1 = tx1 ^ tx1.rotate_right(22);
-        self.x2 = tx2 ^ tx2.rotate_right(5);
-        self.x3 = tx3 ^ tx3.rotate_right(7);
-        self.x4 = tx4 ^ tx4.rotate_right(34);
-        self.x0 = tx0 ^ self.x0.rotate_right(19);
-        self.x1 = tx1 ^ self.x1.rotate_right(39);
-        self.x2 = !(tx2 ^ self.x2.rotate_right(1));
-        self.x3 = tx3 ^ self.x3.rotate_right(10);
-        self.x4 = tx4 ^ self.x4.rotate_right(7);
+        let x0 = tx0 ^ tx0.rotate_right(9);
+        let x1 = tx1 ^ tx1.rotate_right(22);
+        let x2 = tx2 ^ tx2.rotate_right(5);
+        let x3 = tx3 ^ tx3.rotate_right(7);
+        let x4 = tx4 ^ tx4.rotate_right(34);
+        self.x0 = tx0 ^ x0.rotate_right(19);
+        self.x1 = tx1 ^ x1.rotate_right(39);
+        self.x2 = !(tx2 ^ x2.rotate_right(1));
+        self.x3 = tx3 ^ x3.rotate_right(10);
+        self.x4 = tx4 ^ x4.rotate_right(7);
     }
 
     /// Permutation with 12 rounds
