@@ -1,9 +1,7 @@
 use aead::{generic_array::GenericArray, Error};
-use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
 use cipher::consts::U16;
 use core::convert::TryInto;
 use core::marker::PhantomData;
-use std::io::{Cursor, Seek, SeekFrom};
 use subtle::ConstantTimeEq;
 
 #[cfg(feature = "zeroize")]
@@ -203,29 +201,36 @@ impl<P: Parameters> Core<P> {
 
     fn process_associated_data(&mut self, associated_data: &[u8]) {
         let mut len = associated_data.len();
+        let mut idx: usize = 0;
         if len > 0 {
-            let mut rdr = Cursor::new(associated_data);
             while len >= P::COUNT {
                 // process full block of associated data
-                self.state.x0 ^= rdr.read_u64::<BigEndian>().unwrap();
+                self.state.x0 ^=
+                    u64::from_be_bytes(associated_data[idx..idx + 8].try_into().unwrap());
                 if P::COUNT == 16 {
-                    self.state.x1 ^= rdr.read_u64::<BigEndian>().unwrap();
+                    self.state.x1 ^=
+                        u64::from_be_bytes(associated_data[idx + 8..idx + 16].try_into().unwrap());
                 }
                 self.state.permute();
                 len -= P::COUNT;
+                idx += P::COUNT;
             }
 
             // process partial block if it exists
             let px = if P::COUNT == 16 && len >= 8 {
-                self.state.x0 ^= rdr.read_u64::<BigEndian>().unwrap();
+                self.state.x0 ^=
+                    u64::from_be_bytes(associated_data[idx..idx + 8].try_into().unwrap());
                 len -= 8;
+                idx += 8;
                 &mut self.state.x1
             } else {
                 &mut self.state.x0
             };
             *px ^= pad(len);
             if len > 0 {
-                *px ^= rdr.read_uint::<BigEndian>(len).unwrap() << ((8 - len) * 8);
+                let mut tmp: [u8; 8] = [0; 8];
+                tmp[0..len].copy_from_slice(&associated_data[idx..]);
+                *px ^= u64::from_be_bytes(tmp);
             }
             self.state.permute();
         }
@@ -271,37 +276,36 @@ impl<P: Parameters> Core<P> {
 
     fn process_encrypt_inplace(&mut self, message: &mut [u8]) {
         let mut len = message.len();
-        let mut rdr = Cursor::new(message);
+        let mut idx: usize = 0;
         while len >= P::COUNT {
             // process full block of message
-            self.state.x0 ^= rdr.read_u64::<BigEndian>().unwrap();
-            rdr.seek(SeekFrom::Current(-8)).unwrap();
-            rdr.write_u64::<BigEndian>(self.state.x0).unwrap();
+            self.state.x0 ^= u64::from_be_bytes(message[idx..idx + 8].try_into().unwrap());
+            message[idx..idx + 8].copy_from_slice(&u64::to_be_bytes(self.state.x0));
             if P::COUNT == 16 {
-                self.state.x1 ^= rdr.read_u64::<BigEndian>().unwrap();
-                rdr.seek(SeekFrom::Current(-8)).unwrap();
-                rdr.write_u64::<BigEndian>(self.state.x1).unwrap();
+                self.state.x1 ^= u64::from_be_bytes(message[idx + 8..idx + 16].try_into().unwrap());
+                message[idx + 8..idx + 16].copy_from_slice(&u64::to_be_bytes(self.state.x1));
             }
             self.state.permute();
             len -= P::COUNT;
+            idx += P::COUNT;
         }
 
         // process partial block if it exists
         let px = if P::COUNT == 16 && len >= 8 {
-            self.state.x0 ^= rdr.read_u64::<BigEndian>().unwrap();
-            rdr.seek(SeekFrom::Current(-8)).unwrap();
-            rdr.write_u64::<BigEndian>(self.state.x0).unwrap();
+            self.state.x0 ^= u64::from_be_bytes(message[idx..idx + 8].try_into().unwrap());
+            message[idx..idx + 8].copy_from_slice(&u64::to_be_bytes(self.state.x0));
             len -= 8;
+            idx += 8;
             &mut self.state.x1
         } else {
             &mut self.state.x0
         };
         *px ^= pad(len);
         if len > 0 {
-            *px ^= rdr.read_uint::<BigEndian>(len).unwrap() << ((8 - len) * 8);
-            rdr.seek(SeekFrom::Current(-(len as i64))).unwrap();
-            rdr.write_uint::<BigEndian>(*px >> ((8 - len) * 8), len)
-                .unwrap();
+            let mut tmp: [u8; 8] = [0; 8];
+            tmp[0..len].copy_from_slice(&message[idx..]);
+            *px ^= u64::from_be_bytes(tmp);
+            message[idx..].copy_from_slice(&u64::to_be_bytes(*px)[0..len]);
         }
     }
 
@@ -347,41 +351,41 @@ impl<P: Parameters> Core<P> {
 
     fn process_decrypt_inplace(&mut self, ciphertext: &mut [u8]) {
         let mut len = ciphertext.len();
-        let mut rdr = Cursor::new(ciphertext);
+        let mut idx: usize = 0;
         while len >= P::COUNT {
             // process full block of ciphertext
-            let cx = rdr.read_u64::<BigEndian>().unwrap();
-            rdr.seek(SeekFrom::Current(-8)).unwrap();
-            rdr.write_u64::<BigEndian>(self.state.x0 ^ cx).unwrap();
+            let cx = u64::from_be_bytes(ciphertext[idx..idx + 8].try_into().unwrap());
+            ciphertext[idx..idx + 8].copy_from_slice(&u64::to_be_bytes(self.state.x0 ^ cx));
             self.state.x0 = cx;
             if P::COUNT == 16 {
-                let cx = rdr.read_u64::<BigEndian>().unwrap();
-                rdr.seek(SeekFrom::Current(-8)).unwrap();
-                rdr.write_u64::<BigEndian>(self.state.x1 ^ cx).unwrap();
+                let cx = u64::from_be_bytes(ciphertext[idx + 8..idx + 16].try_into().unwrap());
+                ciphertext[idx + 8..idx + 16]
+                    .copy_from_slice(&u64::to_be_bytes(self.state.x1 ^ cx));
                 self.state.x1 = cx;
             }
             self.state.permute();
             len -= P::COUNT;
+            idx += P::COUNT;
         }
 
         // process partial block if it exists
         let px = if P::COUNT == 16 && len >= 8 {
-            let cx = rdr.read_u64::<BigEndian>().unwrap();
-            rdr.seek(SeekFrom::Current(-8)).unwrap();
-            rdr.write_u64::<BigEndian>(self.state.x0 ^ cx).unwrap();
+            let cx = u64::from_be_bytes(ciphertext[idx..idx + 8].try_into().unwrap());
+            ciphertext[idx..idx + 8].copy_from_slice(&u64::to_be_bytes(self.state.x0 ^ cx));
             self.state.x0 = cx;
             len -= 8;
+            idx += 8;
             &mut self.state.x1
         } else {
             &mut self.state.x0
         };
         *px ^= pad(len);
         if len > 0 {
-            let cx = rdr.read_uint::<BigEndian>(len).unwrap() << ((8 - len) * 8);
+            let mut tmp: [u8; 8] = [0; 8];
+            tmp[0..len].copy_from_slice(&ciphertext[idx..]);
+            let cx = u64::from_be_bytes(tmp);
             *px ^= cx;
-            rdr.seek(SeekFrom::Current(-(len as i64))).unwrap();
-            rdr.write_uint::<BigEndian>(*px >> ((8 - len) * 8), len)
-                .unwrap();
+            ciphertext[idx..].copy_from_slice(&u64::to_be_bytes(*px)[0..len]);
             *px = clear(*px, len) ^ cx;
         }
     }
@@ -421,10 +425,9 @@ impl<P: Parameters> Core<P> {
         self.process_encrypt_inplace(message);
         self.process_final();
 
-        let mut tag: [u8; 16] = Default::default();
-        let mut wrr = Cursor::new(&mut tag as &mut [u8]); // why?!
-        wrr.write_u64::<BigEndian>(self.state.x3).unwrap();
-        wrr.write_u64::<BigEndian>(self.state.x4).unwrap();
+        let mut tag = [0u8; 16];
+        tag[..8].copy_from_slice(&u64::to_be_bytes(self.state.x3));
+        tag[8..].copy_from_slice(&u64::to_be_bytes(self.state.x4));
         Tag::from(tag)
     }
 
@@ -463,10 +466,9 @@ impl<P: Parameters> Core<P> {
         self.process_decrypt_inplace(ciphertext);
         self.process_final();
 
-        let mut tag: [u8; 16] = Default::default();
-        let mut wrr = Cursor::new(&mut tag as &mut [u8]); // why?!
-        wrr.write_u64::<BigEndian>(self.state.x3).unwrap();
-        wrr.write_u64::<BigEndian>(self.state.x4).unwrap();
+        let mut tag = [0u8; 16];
+        tag[..8].copy_from_slice(&u64::to_be_bytes(self.state.x3));
+        tag[8..].copy_from_slice(&u64::to_be_bytes(self.state.x4));
 
         if Tag::from(tag).ct_eq(expected_tag).unwrap_u8() == 1 {
             Ok(())
