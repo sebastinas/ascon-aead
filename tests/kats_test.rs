@@ -1,7 +1,6 @@
 use ascon::{
-    self,
     aead::{Aead, NewAead, Payload},
-    Parameters, Parameters128, Parameters128A,
+    Ascon, Key, Nonce, Parameters, Parameters128, Parameters128A,
 };
 use hex;
 use spectral::prelude::{asserting, ResultAssertions};
@@ -10,8 +9,9 @@ use std::include_str;
 
 #[derive(Debug)]
 struct TestVector {
-    key: ascon::Key,
-    nonce: ascon::Nonce,
+    count: u32,
+    key: Key,
+    nonce: Nonce,
     plaintext: Vec<u8>,
     associated_data: Vec<u8>,
     ciphertext: Vec<u8>,
@@ -19,6 +19,7 @@ struct TestVector {
 
 impl TestVector {
     fn new(
+        count: &str,
         key: &str,
         nonce: &str,
         plaintext: &str,
@@ -26,9 +27,9 @@ impl TestVector {
         ciphertext: &str,
     ) -> Self {
         Self {
-            // count: count.parse::<u32>().unwrap(),
-            key: *ascon::Key::from_slice(hex::decode(key).unwrap().as_slice()),
-            nonce: *ascon::Nonce::from_slice(hex::decode(nonce).unwrap().as_slice()),
+            count: count.parse().unwrap(),
+            key: *Key::from_slice(hex::decode(key).unwrap().as_slice()),
+            nonce: *Nonce::from_slice(hex::decode(nonce).unwrap().as_slice()),
             plaintext: hex::decode(plaintext).unwrap(),
             associated_data: hex::decode(associated_data).unwrap(),
             ciphertext: hex::decode(ciphertext).unwrap(),
@@ -37,7 +38,7 @@ impl TestVector {
 }
 
 fn run_tv<P: Parameters>(tv: TestVector) {
-    let core = ascon::Ascon::<P>::new(&tv.key);
+    let core = Ascon::<P>::new(&tv.key);
     asserting(format!("Test Vector {:?} encryption", tv).as_str())
         .that(&core.encrypt(
             &tv.nonce,
@@ -73,6 +74,7 @@ fn parse_tv(tvs: &str) -> TestVector {
     }
 
     TestVector::new(
+        &fields["Count"],
         &fields["Key"],
         &fields["Nonce"],
         &fields["PT"],
