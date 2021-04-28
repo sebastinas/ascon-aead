@@ -22,6 +22,12 @@ pub trait Parameters {
     const COUNT: usize;
     /// Initialization vector used to initialize Ascon's state
     const IV: u64;
+    /// Maximum length of associated data
+    const A_MAX: u64;
+    /// Maximum length of plaintext
+    const P_MAX: u64;
+    /// Maximum length of ciphertext
+    const C_MAX: u64;
 }
 
 /// Parameters for Ascon128
@@ -29,6 +35,9 @@ pub struct Parameters128;
 impl Parameters for Parameters128 {
     const COUNT: usize = 8;
     const IV: u64 = 0x80400c0600000000;
+    const A_MAX: u64 = 1 << 67;
+    const P_MAX: u64 = 1 << 67;
+    const C_MAX: u64 = (1 << 67) + 16;
 }
 
 /// Paramters for Ascon128A
@@ -36,6 +45,9 @@ pub struct Parameters128A;
 impl Parameters for Parameters128A {
     const COUNT: usize = 16;
     const IV: u64 = 0x80800c0800000000;
+    const A_MAX: u64 = 1 << 68;
+    const P_MAX: u64 = 1 << 68;
+    const C_MAX: u64 = (1 << 68) + 16;
 }
 
 #[inline(always)]

@@ -11,15 +11,6 @@ use core::marker::PhantomData;
 #[cfg(feature = "zeroize")]
 use zeroize::Zeroize;
 
-/// Maximum length of associated data
-pub const A_MAX: usize = 1 << 36;
-
-/// Maximum length of plaintext
-pub const P_MAX: usize = 1 << 36;
-
-/// Maximum length of ciphertext
-pub const C_MAX: usize = (1 << 36) + 16;
-
 /// Ascon generic over some Parameters
 pub struct Ascon<P: Parameters> {
     key: Key,
@@ -62,7 +53,7 @@ impl<P: Parameters> AeadInPlace for Ascon<P> {
         associated_data: &[u8],
         buffer: &mut [u8],
     ) -> Result<Tag, Error> {
-        if buffer.len() > P_MAX || associated_data.len() > A_MAX {
+        if buffer.len() as u64 > P::P_MAX || associated_data.len() as u64 > P::A_MAX {
             return Err(Error);
         }
 
@@ -77,7 +68,7 @@ impl<P: Parameters> AeadInPlace for Ascon<P> {
         buffer: &mut [u8],
         tag: &Tag,
     ) -> Result<(), Error> {
-        if buffer.len() > C_MAX || associated_data.len() > A_MAX {
+        if buffer.len() as u64 > P::C_MAX || associated_data.len() as u64 > P::A_MAX {
             return Err(Error);
         }
 
