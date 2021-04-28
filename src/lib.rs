@@ -53,7 +53,10 @@ impl<P: Parameters> AeadInPlace for Ascon<P> {
         associated_data: &[u8],
         buffer: &mut [u8],
     ) -> Result<Tag, Error> {
-        if buffer.len() as u64 > P::P_MAX || associated_data.len() as u64 > P::A_MAX {
+        if (buffer.len() as u64)
+            .checked_add(associated_data.len() as u64)
+            .is_none()
+        {
             return Err(Error);
         }
 
@@ -68,7 +71,10 @@ impl<P: Parameters> AeadInPlace for Ascon<P> {
         buffer: &mut [u8],
         tag: &Tag,
     ) -> Result<(), Error> {
-        if buffer.len() as u64 > P::C_MAX || associated_data.len() as u64 > P::A_MAX {
+        if (buffer.len() as u64)
+            .checked_add(associated_data.len() as u64)
+            .is_none()
+        {
             return Err(Error);
         }
 
