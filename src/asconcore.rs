@@ -52,34 +52,6 @@ fn clear(word: u64, n: usize) -> u64 {
     word & (0x00ffffffffffffff >> (n * 8 - 8))
 }
 
-#[cfg(test)]
-mod tests {
-    use super::{clear, pad};
-
-    #[test]
-    fn pad_0to7() {
-        assert_eq!(pad(0), 0x8000000000000000);
-        assert_eq!(pad(1), 0x80000000000000);
-        assert_eq!(pad(2), 0x800000000000);
-        assert_eq!(pad(3), 0x8000000000);
-        assert_eq!(pad(4), 0x80000000);
-        assert_eq!(pad(5), 0x800000);
-        assert_eq!(pad(6), 0x8000);
-        assert_eq!(pad(7), 0x80);
-    }
-
-    #[test]
-    fn clear_0to7() {
-        assert_eq!(clear(0x0123456789abcdef, 1), 0x23456789abcdef);
-        assert_eq!(clear(0x0123456789abcdef, 2), 0x456789abcdef);
-        assert_eq!(clear(0x0123456789abcdef, 3), 0x6789abcdef);
-        assert_eq!(clear(0x0123456789abcdef, 4), 0x89abcdef);
-        assert_eq!(clear(0x0123456789abcdef, 5), 0xabcdef);
-        assert_eq!(clear(0x0123456789abcdef, 6), 0xcdef);
-        assert_eq!(clear(0x0123456789abcdef, 7), 0xef);
-    }
-}
-
 /// The state of Ascon's permutation
 struct State<P: Parameters> {
     x0: u64,
@@ -486,5 +458,88 @@ impl<P: Parameters> Core<P> {
 impl<P: Parameters> Drop for Core<P> {
     fn drop(&mut self) {
         self.key.zeroize();
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use core::marker::PhantomData;
+    use super::{clear, pad, State, Parameters128, Parameters128a};
+
+    #[test]
+    fn pad_0to7() {
+        assert_eq!(pad(0), 0x8000000000000000);
+        assert_eq!(pad(1), 0x80000000000000);
+        assert_eq!(pad(2), 0x800000000000);
+        assert_eq!(pad(3), 0x8000000000);
+        assert_eq!(pad(4), 0x80000000);
+        assert_eq!(pad(5), 0x800000);
+        assert_eq!(pad(6), 0x8000);
+        assert_eq!(pad(7), 0x80);
+    }
+
+    #[test]
+    fn clear_0to7() {
+        assert_eq!(clear(0x0123456789abcdef, 1), 0x23456789abcdef);
+        assert_eq!(clear(0x0123456789abcdef, 2), 0x456789abcdef);
+        assert_eq!(clear(0x0123456789abcdef, 3), 0x6789abcdef);
+        assert_eq!(clear(0x0123456789abcdef, 4), 0x89abcdef);
+        assert_eq!(clear(0x0123456789abcdef, 5), 0xabcdef);
+        assert_eq!(clear(0x0123456789abcdef, 6), 0xcdef);
+        assert_eq!(clear(0x0123456789abcdef, 7), 0xef);
+    }
+
+    #[test]
+    fn state_permute_12() {
+        let mut state = State::<Parameters128> {
+            x0: 0x0123456789abcdef,
+            x1: 0xef0123456789abcd,
+            x2: 0xcdef0123456789ab,
+            x3: 0xabcdef0123456789,
+            x4: 0x89abcdef01234567,
+            parameters: PhantomData,
+        };
+        state.permute_12();
+        assert_eq!(state.x0, 2334015657242573588);
+        assert_eq!(state.x1, 1949011517051865771);
+        assert_eq!(state.x2, 9886755545121344989);
+        assert_eq!(state.x3, 12210258219724213835);
+        assert_eq!(state.x4, 15985866559212996577);
+    }
+
+    #[test]
+    fn state_permute_128() {
+        let mut state = State::<Parameters128> {
+            x0: 0x0123456789abcdef,
+            x1: 0xef0123456789abcd,
+            x2: 0xcdef0123456789ab,
+            x3: 0xabcdef0123456789,
+            x4: 0x89abcdef01234567,
+            parameters: PhantomData,
+        };
+        state.permute();
+        assert_eq!(state.x0, 0xc27b505c635eb07f);
+        assert_eq!(state.x1, 0xd388f5d2a72046fa);
+        assert_eq!(state.x2, 0x9e415c204d7b15e7);
+        assert_eq!(state.x3, 0xce0d71450fe44581);
+        assert_eq!(state.x4, 0xdd7c5fef57befe48);
+    }
+
+    #[test]
+    fn state_permute_128a() {
+        let mut state = State::<Parameters128a> {
+            x0: 0x0123456789abcdef,
+            x1: 0xef0123456789abcd,
+            x2: 0xcdef0123456789ab,
+            x3: 0xabcdef0123456789,
+            x4: 0x89abcdef01234567,
+            parameters: PhantomData,
+        };
+        state.permute();
+        assert_eq!(state.x0, 0x67ed228272f46eee);
+        assert_eq!(state.x1, 0x80bc0b097aad7944);
+        assert_eq!(state.x2, 0x2fa599382c6db215);
+        assert_eq!(state.x3, 0x368133fae2f7667a);
+        assert_eq!(state.x4, 0x28cefb195a7c651c);
     }
 }
