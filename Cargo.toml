@@ -22,9 +22,15 @@ zeroize = { version = "1", optional = true, default-features = false }
 hex = ">= 0.4"
 aead = { version = ">= 0.3", features = ["alloc"]}
 spectral = ">= 0.6"
+criterion = ">= 0.3"
 
 [features]
 default = ["zeroize", "alloc"]
 std = ["aead/std", "alloc"]
 alloc = ["aead/alloc"]
 heapless = ["aead/heapless"]
+
+[[bench]]
+name = "asconbenches"
+harness = false
+required-features = ["std", "heapless"]
