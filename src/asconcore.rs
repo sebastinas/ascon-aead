@@ -459,8 +459,8 @@ impl<P: Parameters> Drop for Core<P> {
 
 #[cfg(test)]
 mod tests {
+    use super::{clear, pad, Parameters128, Parameters128a, State};
     use core::marker::PhantomData;
-    use super::{clear, pad, State, Parameters128, Parameters128a};
 
     #[test]
     fn pad_0to7() {

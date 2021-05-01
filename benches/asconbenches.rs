@@ -1,5 +1,10 @@
-use criterion::{black_box, criterion_group, criterion_main, Criterion, Throughput, BenchmarkId, Bencher};
-use ascon_aead::{aead::{Aead, NewAead}, Ascon, Key, Nonce, Parameters, Parameters128, Parameters128a};
+use ascon_aead::{
+    aead::{Aead, NewAead},
+    Ascon, Key, Nonce, Parameters, Parameters128, Parameters128a,
+};
+use criterion::{
+    black_box, criterion_group, criterion_main, Bencher, BenchmarkId, Criterion, Throughput,
+};
 
 fn bench_for_size<P: Parameters>(b: &mut Bencher, size: usize) {
     let cipher = Ascon::<P>::new(Key::from_slice(b"very secret key."));
