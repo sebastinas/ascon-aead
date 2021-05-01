@@ -63,6 +63,17 @@ struct State<P: Parameters> {
 }
 
 impl<P: Parameters> State<P> {
+    fn new(x0: u64, x1: u64, x2: u64, x3: u64, x4: u64) -> Self {
+        State {
+            x0,
+            x1,
+            x2,
+            x3,
+            x4,
+            parameters: PhantomData,
+        }
+    }
+
     /// Permute with a single round
     fn round(&mut self, c: u64) {
         // S-box layer
@@ -159,14 +170,13 @@ impl<P: Parameters> Core<P> {
         let key_1 = u64::from_be_bytes(key[..8].try_into().unwrap());
         let key_2 = u64::from_be_bytes(key[8..].try_into().unwrap());
 
-        let mut state = State {
-            x0: P::IV,
-            x1: key_1,
-            x2: key_2,
-            x3: u64::from_be_bytes(nonce[..8].try_into().unwrap()),
-            x4: u64::from_be_bytes(nonce[8..].try_into().unwrap()),
-            parameters: PhantomData,
-        };
+        let mut state = State::new(
+            P::IV,
+            key_1,
+            key_2,
+            u64::from_be_bytes(nonce[..8].try_into().unwrap()),
+            u64::from_be_bytes(nonce[8..].try_into().unwrap()),
+        );
 
         state.permute_12_and_apply(key_1, key_2);
         Self {
@@ -460,7 +470,6 @@ impl<P: Parameters> Drop for Core<P> {
 #[cfg(test)]
 mod tests {
     use super::{clear, pad, Parameters128, Parameters128a, State};
-    use core::marker::PhantomData;
 
     #[test]
     fn pad_0to7() {
@@ -487,32 +496,30 @@ mod tests {
 
     #[test]
     fn state_permute_12() {
-        let mut state = State::<Parameters128> {
-            x0: 0x0123456789abcdef,
-            x1: 0xef0123456789abcd,
-            x2: 0xcdef0123456789ab,
-            x3: 0xabcdef0123456789,
-            x4: 0x89abcdef01234567,
-            parameters: PhantomData,
-        };
+        let mut state = State::<Parameters128>::new(
+            0x0123456789abcdef,
+            0xef0123456789abcd,
+            0xcdef0123456789ab,
+            0xabcdef0123456789,
+            0x89abcdef01234567,
+        );
         state.permute_12();
-        assert_eq!(state.x0, 2334015657242573588);
-        assert_eq!(state.x1, 1949011517051865771);
-        assert_eq!(state.x2, 9886755545121344989);
-        assert_eq!(state.x3, 12210258219724213835);
-        assert_eq!(state.x4, 15985866559212996577);
+        assert_eq!(state.x0, 0x206416dfc624bb14);
+        assert_eq!(state.x1, 0x1b0c47a601058aab);
+        assert_eq!(state.x2, 0x8934cfc93814cddd);
+        assert_eq!(state.x3, 0xa9738d287a748e4b);
+        assert_eq!(state.x4, 0xddd934f058afc7e1);
     }
 
     #[test]
     fn state_permute_128() {
-        let mut state = State::<Parameters128> {
-            x0: 0x0123456789abcdef,
-            x1: 0xef0123456789abcd,
-            x2: 0xcdef0123456789ab,
-            x3: 0xabcdef0123456789,
-            x4: 0x89abcdef01234567,
-            parameters: PhantomData,
-        };
+        let mut state = State::<Parameters128>::new(
+            0x0123456789abcdef,
+            0xef0123456789abcd,
+            0xcdef0123456789ab,
+            0xabcdef0123456789,
+            0x89abcdef01234567,
+        );
         state.permute();
         assert_eq!(state.x0, 0xc27b505c635eb07f);
         assert_eq!(state.x1, 0xd388f5d2a72046fa);
@@ -523,14 +530,13 @@ mod tests {
 
     #[test]
     fn state_permute_128a() {
-        let mut state = State::<Parameters128a> {
-            x0: 0x0123456789abcdef,
-            x1: 0xef0123456789abcd,
-            x2: 0xcdef0123456789ab,
-            x3: 0xabcdef0123456789,
-            x4: 0x89abcdef01234567,
-            parameters: PhantomData,
-        };
+        let mut state = State::<Parameters128a>::new(
+            0x0123456789abcdef,
+            0xef0123456789abcd,
+            0xcdef0123456789ab,
+            0xabcdef0123456789,
+            0x89abcdef01234567,
+        );
         state.permute();
         assert_eq!(state.x0, 0x67ed228272f46eee);
         assert_eq!(state.x1, 0x80bc0b097aad7944);
