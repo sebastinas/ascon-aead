@@ -225,41 +225,6 @@ impl<P: Parameters> Core<P> {
         self.state.x4 ^= 1;
     }
 
-    /*
-    fn process_encrypt(&mut self, ciphertext: &mut [u8], message: &[u8]) {
-        let mut len = message.len();
-        let mut rdr = Cursor::new(message);
-        let mut wrr = Cursor::new(ciphertext);
-        while len >= P::COUNT {
-            // process full block of message
-            self.state.x0 ^= rdr.read_u64::<BigEndian>().unwrap();
-            wrr.write_u64::<BigEndian>(self.state.x0).unwrap();
-            if P::COUNT == 16 {
-                self.state.x1 ^= rdr.read_u64::<BigEndian>().unwrap();
-                wrr.write_u64::<BigEndian>(self.state.x1).unwrap();
-            }
-            self.state.permute();
-            len -= P::COUNT;
-        }
-
-        // process partial block if it exists
-        let px = if P::COUNT == 16 && len >= 8 {
-            self.state.x0 ^= rdr.read_u64::<BigEndian>().unwrap();
-            wrr.write_u64::<BigEndian>(self.state.x0).unwrap();
-            len -= 8;
-            &mut self.state.x1
-        } else {
-            &mut self.state.x0
-        };
-        *px ^= pad(len);
-        if len > 0 {
-            *px ^= rdr.read_uint::<BigEndian>(len).unwrap() << ((8 - len) * 8);
-            wrr.write_uint::<BigEndian>(self.state.x0 >> ((8 - len) * 8), len)
-                .unwrap();
-        }
-    }
-    */
-
     fn process_encrypt_inplace(&mut self, message: &mut [u8]) {
         let mut len = message.len();
         let mut idx: usize = 0;
@@ -294,46 +259,6 @@ impl<P: Parameters> Core<P> {
             message[idx..].copy_from_slice(&u64::to_be_bytes(*px)[0..len]);
         }
     }
-
-    /*
-    fn process_decrypt(&mut self, message: &mut [u8], ciphertext: &[u8]) {
-        let mut len = ciphertext.len();
-        let mut rdr = Cursor::new(ciphertext);
-        let mut wrr = Cursor::new(message);
-        while len >= P::COUNT {
-            // process full block of ciphertext
-            let cx = rdr.read_u64::<BigEndian>().unwrap();
-            wrr.write_u64::<BigEndian>(self.state.x0 ^ cx).unwrap();
-            self.state.x0 = cx;
-            if P::COUNT == 16 {
-                let cx = rdr.read_u64::<BigEndian>().unwrap();
-                wrr.write_u64::<BigEndian>(self.state.x1 ^ cx).unwrap();
-                self.state.x1 = cx;
-            }
-            self.state.permute();
-            len -= P::COUNT;
-        }
-
-        // process partial block if it exists
-        let px = if P::COUNT == 16 && len >= 8 {
-            let cx = rdr.read_u64::<BigEndian>().unwrap();
-            wrr.write_u64::<BigEndian>(self.state.x0 ^ cx).unwrap();
-            self.state.x0 = cx;
-            len -= 8;
-            &mut self.state.x1
-        } else {
-            &mut self.state.x0
-        };
-        *px ^= pad(len);
-        if len > 0 {
-            let cx = rdr.read_uint::<BigEndian>(len).unwrap() << ((8 - len) * 8);
-            *px ^= cx;
-            wrr.write_uint::<BigEndian>(*px >> ((8 - len) * 8), len)
-                .unwrap();
-            *px = clear(*px, len) ^ cx;
-        }
-    }
-    */
 
     fn process_decrypt_inplace(&mut self, ciphertext: &mut [u8]) {
         let mut len = ciphertext.len();
@@ -392,55 +317,11 @@ impl<P: Parameters> Core<P> {
         Tag::from(tag)
     }
 
-    /*
-    pub fn encrypt(
-        &mut self,
-        ciphertext: &mut [u8],
-        message: &[u8],
-        associated_data: &[u8],
-    ) -> Tag {
-        self.process_associated_data(associated_data);
-        self.process_encrypt(ciphertext, message);
-        self.process_final();
-
-        let mut tag: [u8; 16] = Default::default();
-        let mut wrr = Cursor::new(&mut tag as &mut [u8]); // why?!
-        wrr.write_u64::<BigEndian>(self.state.x3).unwrap();
-        wrr.write_u64::<BigEndian>(self.state.x4).unwrap();
-        Tag::from(tag)
-    }
-    */
-
     pub fn encrypt_inplace(&mut self, message: &mut [u8], associated_data: &[u8]) -> Tag {
         self.process_associated_data(associated_data);
         self.process_encrypt_inplace(message);
         self.process_final()
     }
-
-    /*
-    pub fn decrypt(
-        &mut self,
-        message: &mut [u8],
-        ciphertext: &[u8],
-        associated_data: &[u8],
-        expected_tag: &Tag,
-    ) -> Result<(), Error> {
-        self.process_associated_data(associated_data);
-        self.process_decrypt(message, ciphertext);
-        self.process_final();
-
-        let mut tag: [u8; 16] = Default::default();
-        let mut wrr = Cursor::new(&mut tag as &mut [u8]); // why?!
-        wrr.write_u64::<BigEndian>(self.state.x3).unwrap();
-        wrr.write_u64::<BigEndian>(self.state.x4).unwrap();
-
-        if Tag::from(tag).ct_eq(expected_tag).unwrap_u8() == 1 {
-            Ok(())
-        } else {
-            Err(Error)
-        }
-    }
-    */
 
     pub fn decrypt_inplace(
         &mut self,
