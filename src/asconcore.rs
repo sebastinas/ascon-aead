@@ -366,7 +366,7 @@ impl<P: Parameters> Core<P> {
         }
     }
 
-    fn process_final(&mut self) {
+    fn process_final(&mut self) -> Tag {
         if P::COUNT == 8 {
             self.state.x1 ^= self.key[0];
             self.state.x2 ^= self.key[1];
@@ -375,6 +375,11 @@ impl<P: Parameters> Core<P> {
             self.state.x3 ^= self.key[1];
         }
         self.state.permute_12_and_apply(self.key[0], self.key[1]);
+
+        let mut tag = [0u8; 16];
+        tag[..8].copy_from_slice(&u64::to_be_bytes(self.state.x3));
+        tag[8..].copy_from_slice(&u64::to_be_bytes(self.state.x4));
+        Tag::from(tag)
     }
 
     /*
@@ -399,12 +404,7 @@ impl<P: Parameters> Core<P> {
     pub fn encrypt_inplace(&mut self, message: &mut [u8], associated_data: &[u8]) -> Tag {
         self.process_associated_data(associated_data);
         self.process_encrypt_inplace(message);
-        self.process_final();
-
-        let mut tag = [0u8; 16];
-        tag[..8].copy_from_slice(&u64::to_be_bytes(self.state.x3));
-        tag[8..].copy_from_slice(&u64::to_be_bytes(self.state.x4));
-        Tag::from(tag)
+        self.process_final()
     }
 
     /*
@@ -440,13 +440,9 @@ impl<P: Parameters> Core<P> {
     ) -> Result<(), Error> {
         self.process_associated_data(associated_data);
         self.process_decrypt_inplace(ciphertext);
-        self.process_final();
 
-        let mut tag = [0u8; 16];
-        tag[..8].copy_from_slice(&u64::to_be_bytes(self.state.x3));
-        tag[8..].copy_from_slice(&u64::to_be_bytes(self.state.x4));
-
-        if Tag::from(tag).ct_eq(expected_tag).unwrap_u8() == 1 {
+        let tag = self.process_final();
+        if tag.ct_eq(expected_tag).unwrap_u8() == 1 {
             Ok(())
         } else {
             Err(Error)
