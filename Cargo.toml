@@ -33,4 +33,4 @@ heapless = ["aead/heapless"]
 [[bench]]
 name = "asconbenches"
 harness = false
-required-features = ["std", "heapless"]
+required-features = ["default", "std"]
