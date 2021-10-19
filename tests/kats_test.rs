@@ -9,7 +9,6 @@ use std::include_str;
 
 #[derive(Debug)]
 struct TestVector {
-    count: u32,
     key: Key,
     nonce: Nonce,
     plaintext: Vec<u8>,
@@ -19,7 +18,6 @@ struct TestVector {
 
 impl TestVector {
     fn new(
-        count: &str,
         key: &str,
         nonce: &str,
         plaintext: &str,
@@ -27,7 +25,6 @@ impl TestVector {
         ciphertext: &str,
     ) -> Self {
         Self {
-            count: count.parse().unwrap(),
             key: *Key::from_slice(hex::decode(key).unwrap().as_slice()),
             nonce: *Nonce::from_slice(hex::decode(nonce).unwrap().as_slice()),
             plaintext: hex::decode(plaintext).unwrap(),
@@ -74,7 +71,6 @@ fn parse_tv(tvs: &str) -> TestVector {
     }
 
     TestVector::new(
-        &fields["Count"],
         &fields["Key"],
         &fields["Nonce"],
         &fields["PT"],
