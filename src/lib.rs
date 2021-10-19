@@ -33,18 +33,17 @@
 //! heap. See [`aead::AeadInPlace`] for more details.
 //!
 //! ```
-//! # #[cfg(feature = "heapless")]
-//! # {
+//! # #[cfg(feature = "heapless")] {
 //! use ascon_aead::{Ascon128, Key, Nonce}; // Or `Ascon128a`
 //! use ascon_aead::aead::{AeadInPlace, NewAead};
-//! use ascon_aead::aead::heapless::{Vec, consts::U128};
+//! use ascon_aead::aead::heapless::Vec;
 //!
 //! let key = Key::from_slice(b"very secret key.");
 //! let cipher = Ascon128::new(key);
 //!
 //! let nonce = Nonce::from_slice(b"unique nonce 012"); // 128-bits; unique per message
 //!
-//! let mut buffer: Vec<u8, U128> = Vec::new(); // Buffer needs 16-bytes overhead for authentication tag
+//! let mut buffer: Vec<u8, 128> = Vec::new(); // Buffer needs 16-bytes overhead for authentication tag
 //! buffer.extend_from_slice(b"plaintext message");
 //!
 //! // Encrypt `buffer` in-place, replacing the plaintext contents with ciphertext
