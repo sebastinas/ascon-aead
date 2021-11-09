@@ -333,7 +333,7 @@ impl<P: Parameters> Core<P> {
         self.process_decrypt_inplace(ciphertext);
 
         let tag = self.process_final();
-        if tag.ct_eq(expected_tag).unwrap_u8() == 1 {
+        if bool::from(tag.ct_eq(expected_tag)) {
             Ok(())
         } else {
             Err(Error)
