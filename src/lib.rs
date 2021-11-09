@@ -1,10 +1,10 @@
-//! [Authenticated Encryption and Associated Data (AEAD)][1] with [Ascon][2]
+//! # [Authenticated Encryption and Associated Data (AEAD)][1] with [Ascon][2]
 //!
 //! ## Security Notes
 //!
 //! This crate has received no security audit. Use at your own risk.
 //!
-//! # Usage
+//! ## Usage
 //!
 //! Simple usage (allocating, no associated data):
 //!

@@ -9,4 +9,4 @@ This crate has received no security audit. Use at your own risk.
 
 ## License
 
-This create is licensed under the MIT license.
+This crate is licensed under the MIT license.
