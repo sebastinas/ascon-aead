@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.4 (2022-03-14)
+
+* Bump edition to 2021 and MSRV to 1.56
+* Remove dependency on `cipher`
+
 ## 0.1.3 (2021-10-22)
 
 * Declare MSRV as 1.51
