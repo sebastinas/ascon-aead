@@ -66,10 +66,13 @@
 
 mod asconcore;
 
-pub use aead::{self, AeadCore, AeadInPlace, Buffer, Error, NewAead};
+pub use aead::{
+    self,
+    consts::{U0, U16},
+    AeadCore, AeadInPlace, Buffer, Error, NewAead,
+};
 use asconcore::Core;
 pub use asconcore::{Key, Nonce, Parameters, Parameters128, Parameters128a, Tag};
-use cipher::consts::{U0, U16};
 use core::marker::PhantomData;
 
 #[cfg(feature = "zeroize")]

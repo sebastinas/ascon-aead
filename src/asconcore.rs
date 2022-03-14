@@ -1,5 +1,4 @@
-use aead::{generic_array::GenericArray, Error};
-use cipher::consts::U16;
+use aead::{consts::U16, generic_array::GenericArray, Error};
 use core::convert::TryInto;
 use core::marker::PhantomData;
 use subtle::ConstantTimeEq;
