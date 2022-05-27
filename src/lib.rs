@@ -9,10 +9,10 @@
 //! Simple usage (allocating, no associated data):
 //!
 //! ```
-//! use ascon_aead::{Ascon128, Key, Nonce}; // Or `Ascon128a`
+//! use ascon_aead::{Ascon128, Ascon128Key, Nonce}; // Or `Ascon128a`
 //! use ascon_aead::aead::{Aead, NewAead};
 //!
-//! let key = Key::from_slice(b"very secret key.");
+//! let key = Ascon128Key::from_slice(b"very secret key.");
 //! let cipher = Ascon128::new(key);
 //!
 //! let nonce = Nonce::from_slice(b"unique nonce 012"); // 128-bits; unique per message
@@ -34,11 +34,11 @@
 //!
 //! ```
 //! # #[cfg(feature = "heapless")] {
-//! use ascon_aead::{Ascon128, Key, Nonce}; // Or `Ascon128a`
+//! use ascon_aead::{Ascon128, Ascon128Key, Nonce}; // Or `Ascon128a`
 //! use ascon_aead::aead::{AeadInPlace, NewAead};
 //! use ascon_aead::aead::heapless::Vec;
 //!
-//! let key = Key::from_slice(b"very secret key.");
+//! let key = Ascon128Key::from_slice(b"very secret key.");
 //! let cipher = Ascon128::new(key);
 //!
 //! let nonce = Nonce::from_slice(b"unique nonce 012"); // 128-bits; unique per message
@@ -69,14 +69,11 @@ mod asconcore;
 pub use aead::{
     self,
     consts::{U0, U16},
-    AeadCore, AeadInPlace, Buffer, Error, NewAead,
+    AeadCore, AeadInPlace, Buffer, Error, Key, NewAead,
 };
 use asconcore::Core;
-pub use asconcore::{Key, Nonce, Parameters, Parameters128, Parameters128a, Tag};
+pub use asconcore::{Nonce, Parameters, Parameters128, Parameters128a, Tag};
 use core::marker::PhantomData;
-
-#[cfg(feature = "zeroize")]
-use zeroize::Zeroize;
 
 /// Ascon generic over some Parameters
 ///
@@ -84,28 +81,25 @@ use zeroize::Zeroize;
 /// use directly. Use the [`Ascon128`] and [`Ascon128a`] type aliases instead.
 #[derive(Clone)]
 pub struct Ascon<P: Parameters> {
-    key: Key,
+    key: P::InternalKey,
     parameters: PhantomData<P>,
 }
 
 /// Ascon-128
 pub type Ascon128 = Ascon<Parameters128>;
+/// Key for Ascon-128
+pub type Ascon128Key = Key<Ascon128>;
 /// Ascon-128a
 pub type Ascon128a = Ascon<Parameters128a>;
-
-#[cfg(feature = "zeroize")]
-impl<P: Parameters> Drop for Ascon<P> {
-    fn drop(&mut self) {
-        self.key.zeroize();
-    }
-}
+/// Key for Ascon-128a
+pub type Ascon128aKey = Key<Ascon128a>;
 
 impl<P: Parameters> NewAead for Ascon<P> {
-    type KeySize = U16;
+    type KeySize = P::KeySize;
 
-    fn new(key: &Key) -> Self {
+    fn new(key: &Key<Self>) -> Self {
         Self {
-            key: *key,
+            key: P::InternalKey::from(key),
             parameters: PhantomData,
         }
     }

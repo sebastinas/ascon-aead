@@ -1,13 +1,10 @@
-use aead::{consts::U16, generic_array::GenericArray, Error};
-use core::convert::TryInto;
-use core::marker::PhantomData;
+use aead::generic_array::ArrayLength;
+use aead::{
+    consts::{U16, U20},
+    generic_array::{typenum::Unsigned, GenericArray},
+    Error,
+};
 use subtle::ConstantTimeEq;
-
-#[cfg(feature = "zeroize")]
-use zeroize::Zeroize;
-
-/// Ascon keys
-pub type Key = GenericArray<u8, U16>;
 
 /// Ascon nonces
 pub type Nonce = GenericArray<u8, U16>;
@@ -15,8 +12,48 @@ pub type Nonce = GenericArray<u8, U16>;
 /// Ascon tags
 pub type Tag = GenericArray<u8, U16>;
 
+pub trait InternalKey<KS: ArrayLength<u8>>:
+    Sized + Copy + for<'a> From<&'a GenericArray<u8, KS>>
+{
+    fn get_k0(&self) -> u64;
+    fn get_k1(&self) -> u64;
+    fn get_k2(&self) -> u64;
+}
+
+#[derive(Clone, Copy)]
+#[cfg_attr(feature = "zeroize", derive(zeroize::Zeroize))]
+pub struct InternalKey16(u64, u64);
+
+impl InternalKey<U16> for InternalKey16 {
+    fn get_k0(&self) -> u64 {
+        0
+    }
+
+    fn get_k1(&self) -> u64 {
+        self.0
+    }
+
+    fn get_k2(&self) -> u64 {
+        self.1
+    }
+}
+
+impl From<&GenericArray<u8, U16>> for InternalKey16 {
+    fn from(key: &GenericArray<u8, U16>) -> Self {
+        let key_1 = u64::from_be_bytes(key[..8].try_into().unwrap());
+        let key_2 = u64::from_be_bytes(key[8..].try_into().unwrap());
+
+        Self(key_1, key_2)
+    }
+}
+
 /// Parameters of an Ascon instance
 pub trait Parameters {
+    /// Size of the secret key
+    type KeySize: ArrayLength<u8>;
+    /// Internal storage for secret keys
+    type InternalKey: InternalKey<Self::KeySize>;
+
     /// Number of bytes to process per round
     const COUNT: usize;
     /// Initialization vector used to initialize Ascon's state
@@ -28,6 +65,9 @@ pub trait Parameters {
 /// Parameters for Ascon-128
 pub struct Parameters128;
 impl Parameters for Parameters128 {
+    type KeySize = U16;
+    type InternalKey = InternalKey16;
+
     const COUNT: usize = 8;
     const IV: u64 = 0x80400c0600000000;
     const B_MAX: u64 = u64::MAX; // 2^64;
@@ -36,6 +76,9 @@ impl Parameters for Parameters128 {
 /// Parameters for Ascon-128a
 pub struct Parameters128a;
 impl Parameters for Parameters128a {
+    type KeySize = U16;
+    type InternalKey = InternalKey16;
+
     const COUNT: usize = 16;
     const IV: u64 = 0x80800c0800000000;
     const B_MAX: u64 = u64::MAX; // 2^64;
@@ -52,25 +95,17 @@ fn clear(word: u64, n: usize) -> u64 {
 }
 
 /// The state of Ascon's permutation
-struct State<P: Parameters> {
+struct State {
     x0: u64,
     x1: u64,
     x2: u64,
     x3: u64,
     x4: u64,
-    parameters: PhantomData<P>,
 }
 
-impl<P: Parameters> State<P> {
+impl State {
     fn new(x0: u64, x1: u64, x2: u64, x3: u64, x4: u64) -> Self {
-        State {
-            x0,
-            x1,
-            x2,
-            x3,
-            x4,
-            parameters: PhantomData,
-        }
+        State { x0, x1, x2, x3, x4 }
     }
 
     /// Permute with a single round
@@ -118,13 +153,6 @@ impl<P: Parameters> State<P> {
         self.round(0x4b);
     }
 
-    /// Permutation with 8 rounds and application of the key at the end
-    fn permute_12_and_apply(&mut self, k0: u64, k1: u64) {
-        self.permute_12();
-        self.x3 ^= k0;
-        self.x4 ^= k1;
-    }
-
     /// Permutation with 8 rounds
     fn permute_8(&mut self) {
         self.round(0xb4);
@@ -146,41 +174,52 @@ impl<P: Parameters> State<P> {
         self.round(0x5a);
         self.round(0x4b);
     }
-
-    /// Permutation with 6 or 8 rounds based on the parameters
-    #[inline(always)]
-    fn permute(&mut self) {
-        if P::COUNT == 8 {
-            self.permute_6();
-        } else {
-            self.permute_8();
-        }
-    }
 }
 
 /// Core implementation of Ascon for one encryption/decryption operation
 pub struct Core<P: Parameters> {
-    state: State<P>,
-    key: [u64; 2],
+    state: State,
+    key: P::InternalKey,
 }
 
 impl<P: Parameters> Core<P> {
-    pub fn new(key: &Key, nonce: &Nonce) -> Self {
-        let key_1 = u64::from_be_bytes(key[..8].try_into().unwrap());
-        let key_2 = u64::from_be_bytes(key[8..].try_into().unwrap());
-
+    pub fn new(internal_key: &P::InternalKey, nonce: &Nonce) -> Self {
         let mut state = State::new(
-            P::IV,
-            key_1,
-            key_2,
+            if P::KeySize::USIZE == 20 {
+                P::IV ^ internal_key.get_k0()
+            } else {
+                P::IV
+            },
+            internal_key.get_k1(),
+            internal_key.get_k2(),
             u64::from_be_bytes(nonce[..8].try_into().unwrap()),
             u64::from_be_bytes(nonce[8..].try_into().unwrap()),
         );
 
-        state.permute_12_and_apply(key_1, key_2);
+        state.permute_12();
+        state.x3 ^= internal_key.get_k1();
+        state.x4 ^= internal_key.get_k2();
+
         Self {
             state,
-            key: [key_1, key_2],
+            key: *internal_key,
+        }
+    }
+
+    /// Permutation with 12 rounds and application of the key at the end
+    fn permute_12_and_apply_key(&mut self) {
+        self.state.permute_12();
+        self.state.x3 ^= self.key.get_k1();
+        self.state.x4 ^= self.key.get_k2();
+    }
+
+    /// Permutation with 6 or 8 rounds based on the parameters
+    #[inline(always)]
+    fn permute_state(&mut self) {
+        if P::COUNT == 8 {
+            self.state.permute_6();
+        } else {
+            self.state.permute_8();
         }
     }
 
@@ -196,7 +235,7 @@ impl<P: Parameters> Core<P> {
                     self.state.x1 ^=
                         u64::from_be_bytes(associated_data[idx + 8..idx + 16].try_into().unwrap());
                 }
-                self.state.permute();
+                self.permute_state();
                 len -= P::COUNT;
                 idx += P::COUNT;
             }
@@ -217,7 +256,7 @@ impl<P: Parameters> Core<P> {
                 tmp[0..len].copy_from_slice(&associated_data[idx..]);
                 *px ^= u64::from_be_bytes(tmp);
             }
-            self.state.permute();
+            self.permute_state();
         }
 
         // domain separation
@@ -235,7 +274,7 @@ impl<P: Parameters> Core<P> {
                 self.state.x1 ^= u64::from_be_bytes(message[idx + 8..idx + 16].try_into().unwrap());
                 message[idx + 8..idx + 16].copy_from_slice(&u64::to_be_bytes(self.state.x1));
             }
-            self.state.permute();
+            self.permute_state();
             len -= P::COUNT;
             idx += P::COUNT;
         }
@@ -273,7 +312,7 @@ impl<P: Parameters> Core<P> {
                     .copy_from_slice(&u64::to_be_bytes(self.state.x1 ^ cx));
                 self.state.x1 = cx;
             }
-            self.state.permute();
+            self.permute_state();
             len -= P::COUNT;
             idx += P::COUNT;
         }
@@ -301,14 +340,15 @@ impl<P: Parameters> Core<P> {
     }
 
     fn process_final(&mut self) -> Tag {
-        if P::COUNT == 8 {
-            self.state.x1 ^= self.key[0];
-            self.state.x2 ^= self.key[1];
-        } else if P::COUNT == 16 {
-            self.state.x2 ^= self.key[0];
-            self.state.x3 ^= self.key[1];
+        if P::KeySize::USIZE == 16 && P::COUNT == 8 {
+            self.state.x1 ^= self.key.get_k1();
+            self.state.x2 ^= self.key.get_k2();
+        } else if P::KeySize::USIZE == 16 && P::COUNT == 16 {
+            self.state.x2 ^= self.key.get_k1();
+            self.state.x3 ^= self.key.get_k2();
         }
-        self.state.permute_12_and_apply(self.key[0], self.key[1]);
+
+        self.permute_12_and_apply_key();
 
         let mut tag = [0u8; 16];
         tag[..8].copy_from_slice(&u64::to_be_bytes(self.state.x3));
@@ -340,16 +380,9 @@ impl<P: Parameters> Core<P> {
     }
 }
 
-#[cfg(feature = "zeroize")]
-impl<P: Parameters> Drop for Core<P> {
-    fn drop(&mut self) {
-        self.key.zeroize();
-    }
-}
-
 #[cfg(test)]
 mod tests {
-    use super::{clear, pad, Parameters128, Parameters128a, State};
+    use super::{clear, pad, State};
 
     #[test]
     fn pad_0to7() {
@@ -376,7 +409,7 @@ mod tests {
 
     #[test]
     fn state_permute_12() {
-        let mut state = State::<Parameters128>::new(
+        let mut state = State::new(
             0x0123456789abcdef,
             0xef0123456789abcd,
             0xcdef0123456789ab,
@@ -393,14 +426,14 @@ mod tests {
 
     #[test]
     fn state_permute_128() {
-        let mut state = State::<Parameters128>::new(
+        let mut state = State::new(
             0x0123456789abcdef,
             0xef0123456789abcd,
             0xcdef0123456789ab,
             0xabcdef0123456789,
             0x89abcdef01234567,
         );
-        state.permute();
+        state.permute_6();
         assert_eq!(state.x0, 0xc27b505c635eb07f);
         assert_eq!(state.x1, 0xd388f5d2a72046fa);
         assert_eq!(state.x2, 0x9e415c204d7b15e7);
@@ -410,14 +443,14 @@ mod tests {
 
     #[test]
     fn state_permute_128a() {
-        let mut state = State::<Parameters128a>::new(
+        let mut state = State::new(
             0x0123456789abcdef,
             0xef0123456789abcd,
             0xcdef0123456789ab,
             0xabcdef0123456789,
             0x89abcdef01234567,
         );
-        state.permute();
+        state.permute_8();
         assert_eq!(state.x0, 0x67ed228272f46eee);
         assert_eq!(state.x1, 0x80bc0b097aad7944);
         assert_eq!(state.x2, 0x2fa599382c6db215);

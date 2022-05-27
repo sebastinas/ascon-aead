@@ -2,14 +2,13 @@ use ascon_aead::{
     aead::{Aead, NewAead, Payload},
     Ascon, Key, Nonce, Parameters, Parameters128, Parameters128a,
 };
-use hex;
 use spectral::prelude::{asserting, ResultAssertions};
 use std::collections::HashMap;
 use std::include_str;
 
 #[derive(Debug)]
 struct TestVector {
-    key: Key,
+    key: Vec<u8>,
     nonce: Nonce,
     plaintext: Vec<u8>,
     associated_data: Vec<u8>,
@@ -25,7 +24,7 @@ impl TestVector {
         ciphertext: &str,
     ) -> Self {
         Self {
-            key: *Key::from_slice(hex::decode(key).unwrap().as_slice()),
+            key: hex::decode(key).unwrap(),
             nonce: *Nonce::from_slice(hex::decode(nonce).unwrap().as_slice()),
             plaintext: hex::decode(plaintext).unwrap(),
             associated_data: hex::decode(associated_data).unwrap(),
@@ -35,7 +34,7 @@ impl TestVector {
 }
 
 fn run_tv<P: Parameters>(tv: TestVector) {
-    let core = Ascon::<P>::new(&tv.key);
+    let core = Ascon::<P>::new(Key::<Ascon<P>>::from_slice(&tv.key));
     asserting(format!("Test Vector {:?} encryption", tv).as_str())
         .that(&core.encrypt(
             &tv.nonce,
