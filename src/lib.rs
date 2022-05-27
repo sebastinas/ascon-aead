@@ -72,8 +72,7 @@ pub use aead::{
     AeadCore, AeadInPlace, Buffer, Error, Key, NewAead,
 };
 use asconcore::Core;
-pub use asconcore::{Nonce, Parameters, Parameters128, Parameters128a, Tag};
-use core::marker::PhantomData;
+pub use asconcore::{Nonce, Parameters, Parameters128, Parameters128a, Parameters80pq, Tag};
 
 /// Ascon generic over some Parameters
 ///
@@ -82,7 +81,6 @@ use core::marker::PhantomData;
 #[derive(Clone)]
 pub struct Ascon<P: Parameters> {
     key: P::InternalKey,
-    parameters: PhantomData<P>,
 }
 
 /// Ascon-128
@@ -100,7 +98,6 @@ impl<P: Parameters> NewAead for Ascon<P> {
     fn new(key: &Key<Self>) -> Self {
         Self {
             key: P::InternalKey::from(key),
-            parameters: PhantomData,
         }
     }
 }

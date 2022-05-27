@@ -47,6 +47,34 @@ impl From<&GenericArray<u8, U16>> for InternalKey16 {
     }
 }
 
+#[derive(Clone, Copy)]
+#[cfg_attr(feature = "zeroize", derive(zeroize::Zeroize))]
+pub struct InternalKey24(u64, u64, u64);
+
+impl InternalKey<U20> for InternalKey24 {
+    fn get_k0(&self) -> u64 {
+        self.0
+    }
+
+    fn get_k1(&self) -> u64 {
+        self.1
+    }
+
+    fn get_k2(&self) -> u64 {
+        self.2
+    }
+}
+
+impl From<&GenericArray<u8, U20>> for InternalKey24 {
+    fn from(key: &GenericArray<u8, U20>) -> Self {
+        let key_0 = u32::from_be_bytes(key[..4].try_into().unwrap());
+        let key_1 = u64::from_be_bytes(key[4..12].try_into().unwrap());
+        let key_2 = u64::from_be_bytes(key[12..].try_into().unwrap());
+
+        Self(key_0 as u64, key_1, key_2)
+    }
+}
+
 /// Parameters of an Ascon instance
 pub trait Parameters {
     /// Size of the secret key
@@ -84,6 +112,17 @@ impl Parameters for Parameters128a {
     const B_MAX: u64 = u64::MAX; // 2^64;
 }
 
+/// Parameters for Ascon-80pq
+pub struct Parameters80pq;
+impl Parameters for Parameters80pq {
+    type KeySize = U20;
+    type InternalKey = InternalKey24;
+
+    const COUNT: usize = 8;
+    const IV: u64 = 0xa0400c0600000000;
+    const B_MAX: u64 = u64::MAX;
+}
+
 #[inline(always)]
 fn pad(n: usize) -> u64 {
     (0x80_u64) << (56 - 8 * n)
@@ -92,6 +131,11 @@ fn pad(n: usize) -> u64 {
 #[inline(always)]
 fn clear(word: u64, n: usize) -> u64 {
     word & (0x00ffffffffffffff >> (n * 8 - 8))
+}
+
+#[inline(always)]
+fn keyrot(lo2hi: u64, hi2lo: u64) -> u64 {
+    lo2hi << 32 | hi2lo >> 32
 }
 
 /// The state of Ascon's permutation
@@ -197,6 +241,9 @@ impl<P: Parameters> Core<P> {
         );
 
         state.permute_12();
+        if P::KeySize::USIZE == 20 {
+            state.x2 ^= internal_key.get_k0();
+        }
         state.x3 ^= internal_key.get_k1();
         state.x4 ^= internal_key.get_k2();
 
@@ -346,6 +393,10 @@ impl<P: Parameters> Core<P> {
         } else if P::KeySize::USIZE == 16 && P::COUNT == 16 {
             self.state.x2 ^= self.key.get_k1();
             self.state.x3 ^= self.key.get_k2();
+        } else if P::KeySize::USIZE == 20 {
+            self.state.x1 ^= keyrot(self.key.get_k0(), self.key.get_k1());
+            self.state.x2 ^= keyrot(self.key.get_k1(), self.key.get_k2());
+            self.state.x3 ^= keyrot(self.key.get_k2(), 0);
         }
 
         self.permute_12_and_apply_key();
