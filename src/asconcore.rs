@@ -12,11 +12,17 @@ pub type Nonce = GenericArray<u8, U16>;
 /// Ascon tags
 pub type Tag = GenericArray<u8, U16>;
 
+/// Helper trait for handling differences in key usage of Ascon-128* and Ascon-80*
+///
+/// For internal use-only.
 pub trait InternalKey<KS: ArrayLength<u8>>:
     Sized + Copy + for<'a> From<&'a GenericArray<u8, KS>>
 {
+    /// Return K0.
     fn get_k0(&self) -> u64;
+    /// Return K1.
     fn get_k1(&self) -> u64;
+    /// Return K2.
     fn get_k2(&self) -> u64;
 }
 
@@ -25,14 +31,17 @@ pub trait InternalKey<KS: ArrayLength<u8>>:
 pub struct InternalKey16(u64, u64);
 
 impl InternalKey<U16> for InternalKey16 {
+    #[inline(always)]
     fn get_k0(&self) -> u64 {
         0
     }
 
+    #[inline(always)]
     fn get_k1(&self) -> u64 {
         self.0
     }
 
+    #[inline(always)]
     fn get_k2(&self) -> u64 {
         self.1
     }
@@ -40,10 +49,10 @@ impl InternalKey<U16> for InternalKey16 {
 
 impl From<&GenericArray<u8, U16>> for InternalKey16 {
     fn from(key: &GenericArray<u8, U16>) -> Self {
-        let key_1 = u64::from_be_bytes(key[..8].try_into().unwrap());
-        let key_2 = u64::from_be_bytes(key[8..].try_into().unwrap());
-
-        Self(key_1, key_2)
+        Self(
+            u64::from_be_bytes(key[..8].try_into().unwrap()),
+            u64::from_be_bytes(key[8..].try_into().unwrap()),
+        )
     }
 }
 
@@ -52,14 +61,17 @@ impl From<&GenericArray<u8, U16>> for InternalKey16 {
 pub struct InternalKey24(u64, u64, u64);
 
 impl InternalKey<U20> for InternalKey24 {
+    #[inline(always)]
     fn get_k0(&self) -> u64 {
         self.0
     }
 
+    #[inline(always)]
     fn get_k1(&self) -> u64 {
         self.1
     }
 
+    #[inline(always)]
     fn get_k2(&self) -> u64 {
         self.2
     }
@@ -67,19 +79,23 @@ impl InternalKey<U20> for InternalKey24 {
 
 impl From<&GenericArray<u8, U20>> for InternalKey24 {
     fn from(key: &GenericArray<u8, U20>) -> Self {
-        let key_0 = u32::from_be_bytes(key[..4].try_into().unwrap());
-        let key_1 = u64::from_be_bytes(key[4..12].try_into().unwrap());
-        let key_2 = u64::from_be_bytes(key[12..].try_into().unwrap());
-
-        Self(key_0 as u64, key_1, key_2)
+        Self(
+            u32::from_be_bytes(key[..4].try_into().unwrap()) as u64,
+            u64::from_be_bytes(key[4..12].try_into().unwrap()),
+            u64::from_be_bytes(key[12..].try_into().unwrap()),
+        )
     }
 }
 
 /// Parameters of an Ascon instance
 pub trait Parameters {
     /// Size of the secret key
+    ///
+    /// For internal use-only.
     type KeySize: ArrayLength<u8>;
     /// Internal storage for secret keys
+    ///
+    /// For internal use-only.
     type InternalKey: InternalKey<Self::KeySize>;
 
     /// Number of bytes to process per round
