@@ -15,7 +15,7 @@
 //! let key = Key::<Ascon128>::from_slice(b"very secret key.");
 //! let cipher = Ascon128::new(key);
 //!
-//! let nonce = Nonce::from_slice(b"unique nonce 012"); // 128-bits; unique per message
+//! let nonce = Nonce::<Ascon128>::from_slice(b"unique nonce 012"); // 128-bits; unique per message
 //!
 //! let ciphertext = cipher.encrypt(nonce, b"plaintext message".as_ref())
 //!     .expect("encryption failure!"); // NOTE: handle this error to avoid panics!
@@ -41,7 +41,7 @@
 //! let key = Key::<Ascon128>::from_slice(b"very secret key.");
 //! let cipher = Ascon128::new(key);
 //!
-//! let nonce = Nonce::from_slice(b"unique nonce 012"); // 128-bits; unique per message
+//! let nonce = Nonce::<Ascon128>::from_slice(b"unique nonce 012"); // 128-bits; unique per message
 //!
 //! let mut buffer: Vec<u8, 128> = Vec::new(); // Buffer needs 16-bytes overhead for authentication tag
 //! buffer.extend_from_slice(b"plaintext message");
@@ -64,11 +64,8 @@
 #![no_std]
 #![warn(missing_docs)]
 
-pub use aead::{self, AeadCore, AeadInPlace, Error, Key, NewAead};
-use aead::{
-    consts::{U0, U16},
-    generic_array::GenericArray,
-};
+use aead::consts::{U0, U16};
+pub use aead::{self, AeadCore, AeadInPlace, Error, Key, NewAead, Nonce, Tag};
 
 mod asconcore;
 
@@ -88,20 +85,28 @@ pub struct Ascon<P: Parameters> {
 pub type Ascon128 = Ascon<Parameters128>;
 /// Key for Ascon-128
 pub type Ascon128Key = Key<Ascon128>;
+/// Nonce for Ascon-128
+pub type Ascon128Nonce = Nonce<Ascon128>;
+/// Tag for Ascon-128
+pub type Ascon128Tag = Tag<Ascon128>;
+
 /// Ascon-128a
 pub type Ascon128a = Ascon<Parameters128a>;
 /// Key for Ascon-128a
 pub type Ascon128aKey = Key<Ascon128a>;
+/// Nonce for Ascon-128a
+pub type Ascon128aNonce = Nonce<Ascon128a>;
+/// Tag for Ascon-128a
+pub type Ascon128aTag = Tag<Ascon128a>;
+
 /// Ascon-80pq
 pub type Ascon80pq = Ascon<Parameters80pq>;
 /// Key for Ascon-80pq
 pub type Ascon80pqKey = Key<Ascon80pq>;
-
-/// Ascon nonces
-pub type Nonce = GenericArray<u8, U16>;
-
-/// Ascon tags
-pub type Tag = GenericArray<u8, U16>;
+/// Nonce for Ascon-80pq
+pub type Ascon80pqNonce = Nonce<Ascon80pq>;
+/// Tag for Ascon-80pq
+pub type Ascon80pqTag = Tag<Ascon80pq>;
 
 impl<P: Parameters> NewAead for Ascon<P> {
     type KeySize = P::KeySize;
@@ -122,10 +127,10 @@ impl<P: Parameters> AeadCore for Ascon<P> {
 impl<P: Parameters> AeadInPlace for Ascon<P> {
     fn encrypt_in_place_detached(
         &self,
-        nonce: &Nonce,
+        nonce: &Nonce<Self>,
         associated_data: &[u8],
         buffer: &mut [u8],
-    ) -> Result<Tag, Error> {
+    ) -> Result<Tag<Self>, Error> {
         if (buffer.len() as u64)
             .checked_add(associated_data.len() as u64)
             .is_none()
@@ -139,10 +144,10 @@ impl<P: Parameters> AeadInPlace for Ascon<P> {
 
     fn decrypt_in_place_detached(
         &self,
-        nonce: &Nonce,
+        nonce: &Nonce<Self>,
         associated_data: &[u8],
         buffer: &mut [u8],
-        tag: &Tag,
+        tag: &Tag<Self>,
     ) -> Result<(), Error> {
         if (buffer.len() as u64)
             .checked_add(associated_data.len() as u64)

@@ -6,8 +6,6 @@ use aead::{
 };
 use subtle::ConstantTimeEq;
 
-use crate::{Nonce, Tag};
-
 /// Helper trait for handling differences in key usage of Ascon-128* and Ascon-80*
 ///
 /// For internal use-only.
@@ -245,7 +243,7 @@ pub struct Core<'a, P: Parameters> {
 }
 
 impl<'a, P: Parameters> Core<'a, P> {
-    pub(crate) fn new(internal_key: &'a P::InternalKey, nonce: &Nonce) -> Self {
+    pub(crate) fn new(internal_key: &'a P::InternalKey, nonce: &GenericArray<u8, U16>) -> Self {
         let mut state = State::new(
             if P::KeySize::USIZE == 20 {
                 P::IV ^ internal_key.get_k0()
@@ -404,7 +402,7 @@ impl<'a, P: Parameters> Core<'a, P> {
         }
     }
 
-    fn process_final(&mut self) -> Tag {
+    fn process_final(&mut self) -> [u8; 16] {
         if P::KeySize::USIZE == 16 && P::COUNT == 8 {
             self.state.x1 ^= self.key.get_k1();
             self.state.x2 ^= self.key.get_k2();
@@ -422,20 +420,24 @@ impl<'a, P: Parameters> Core<'a, P> {
         let mut tag = [0u8; 16];
         tag[..8].copy_from_slice(&u64::to_be_bytes(self.state.x3));
         tag[8..].copy_from_slice(&u64::to_be_bytes(self.state.x4));
-        Tag::from(tag)
+        tag
     }
 
-    pub(crate) fn encrypt_inplace(&mut self, message: &mut [u8], associated_data: &[u8]) -> Tag {
+    pub(crate) fn encrypt_inplace(
+        &mut self,
+        message: &mut [u8],
+        associated_data: &[u8],
+    ) -> GenericArray<u8, U16> {
         self.process_associated_data(associated_data);
         self.process_encrypt_inplace(message);
-        self.process_final()
+        GenericArray::from(self.process_final())
     }
 
     pub(crate) fn decrypt_inplace(
         &mut self,
         ciphertext: &mut [u8],
         associated_data: &[u8],
-        expected_tag: &Tag,
+        expected_tag: &GenericArray<u8, U16>,
     ) -> Result<(), Error> {
         self.process_associated_data(associated_data);
         self.process_decrypt_inplace(ciphertext);

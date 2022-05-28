@@ -12,7 +12,7 @@ fn bench_for_size<P: Parameters>(b: &mut Bencher, size: usize) {
     let cipher = Ascon::<P>::new(Key::<Ascon<P>>::from_slice(
         &b"very secret key.0123"[..P::KeySize::USIZE],
     ));
-    let nonce = Nonce::from_slice(b"unique nonce 012");
+    let nonce = Nonce::<Ascon<P>>::from_slice(b"unique nonce 012");
     let plaintext = vec![0u8; size];
 
     b.iter(|| black_box(cipher.encrypt(nonce, plaintext.as_slice()).unwrap()));
@@ -22,7 +22,7 @@ fn bench_for_size_inplace<P: Parameters>(b: &mut Bencher, size: usize) {
     let cipher = Ascon::<P>::new(Key::<Ascon<P>>::from_slice(
         &b"very secret key.0123"[..P::KeySize::USIZE],
     ));
-    let nonce = Nonce::from_slice(b"unique nonce 012");
+    let nonce = Nonce::<Ascon<P>>::from_slice(b"unique nonce 012");
     let mut buffer = vec![0u8; size + 16];
 
     b.iter(|| black_box(cipher.encrypt_in_place(nonce, b"", &mut buffer).unwrap()));

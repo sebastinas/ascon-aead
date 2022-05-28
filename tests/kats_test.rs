@@ -9,7 +9,7 @@ use std::include_str;
 #[derive(Debug)]
 struct TestVector {
     key: Vec<u8>,
-    nonce: Nonce,
+    nonce: Vec<u8>,
     plaintext: Vec<u8>,
     associated_data: Vec<u8>,
     ciphertext: Vec<u8>,
@@ -25,7 +25,7 @@ impl TestVector {
     ) -> Self {
         Self {
             key: hex::decode(key).unwrap(),
-            nonce: *Nonce::from_slice(hex::decode(nonce).unwrap().as_slice()),
+            nonce: hex::decode(nonce).unwrap(),
             plaintext: hex::decode(plaintext).unwrap(),
             associated_data: hex::decode(associated_data).unwrap(),
             ciphertext: hex::decode(ciphertext).unwrap(),
@@ -37,7 +37,7 @@ fn run_tv<P: Parameters>(tv: TestVector) {
     let core = Ascon::<P>::new(Key::<Ascon<P>>::from_slice(&tv.key));
     asserting(format!("Test Vector {:?} encryption", tv).as_str())
         .that(&core.encrypt(
-            &tv.nonce,
+            Nonce::<Ascon<P>>::from_slice(&tv.nonce),
             Payload {
                 msg: &tv.plaintext,
                 aad: &tv.associated_data,
@@ -48,7 +48,7 @@ fn run_tv<P: Parameters>(tv: TestVector) {
 
     asserting(format!("Test Vector {:?} decryption", tv).as_str())
         .that(&core.decrypt(
-            &tv.nonce,
+            Nonce::<Ascon<P>>::from_slice(&tv.nonce),
             Payload {
                 msg: &tv.ciphertext,
                 aad: &tv.associated_data,
