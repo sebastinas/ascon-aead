@@ -53,12 +53,12 @@ impl From<&GenericArray<u8, U16>> for InternalKey16 {
 
 #[derive(Clone)]
 #[cfg_attr(feature = "zeroize", derive(zeroize::Zeroize, zeroize::ZeroizeOnDrop))]
-pub struct InternalKey24(u64, u64, u64);
+pub struct InternalKey20(u32, u64, u64);
 
-impl InternalKey<U20> for InternalKey24 {
+impl InternalKey<U20> for InternalKey20 {
     #[inline(always)]
     fn get_k0(&self) -> u64 {
-        self.0
+        self.0 as u64
     }
 
     #[inline(always)]
@@ -72,11 +72,11 @@ impl InternalKey<U20> for InternalKey24 {
     }
 }
 
-impl From<&GenericArray<u8, U20>> for InternalKey24 {
+impl From<&GenericArray<u8, U20>> for InternalKey20 {
     fn from(key: &GenericArray<u8, U20>) -> Self {
         // the array is exactly 20 bytes long, hence the following .try_into().unwrap() never fail
         Self(
-            u32::from_be_bytes(key[..4].try_into().unwrap()) as u64,
+            u32::from_be_bytes(key[..4].try_into().unwrap()),
             u64::from_be_bytes(key[4..12].try_into().unwrap()),
             u64::from_be_bytes(key[12..].try_into().unwrap()),
         )
@@ -132,7 +132,7 @@ pub struct Parameters80pq;
 
 impl Parameters for Parameters80pq {
     type KeySize = U20;
-    type InternalKey = InternalKey24;
+    type InternalKey = InternalKey20;
 
     const COUNT: usize = 8;
     const IV: u64 = 0xa0400c0600000000;
