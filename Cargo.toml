@@ -16,7 +16,7 @@ exclude = [".github/", ".gitignore"]
 [dependencies]
 aead = { version = "0.4", default-features = false }
 subtle = "2"
-zeroize = { version = "1", optional = true, default-features = false, features = [
+zeroize = { version = "1.5", optional = true, default-features = false, features = [
     "derive",
 ] }
 

@@ -16,7 +16,7 @@ pub type Tag = GenericArray<u8, U16>;
 ///
 /// For internal use-only.
 pub trait InternalKey<KS: ArrayLength<u8>>:
-    Sized + Copy + for<'a> From<&'a GenericArray<u8, KS>>
+    Sized + Clone + for<'a> From<&'a GenericArray<u8, KS>>
 {
     /// Return K0.
     fn get_k0(&self) -> u64;
@@ -26,8 +26,8 @@ pub trait InternalKey<KS: ArrayLength<u8>>:
     fn get_k2(&self) -> u64;
 }
 
-#[derive(Clone, Copy)]
-#[cfg_attr(feature = "zeroize", derive(zeroize::Zeroize))]
+#[derive(Clone)]
+#[cfg_attr(feature = "zeroize", derive(zeroize::Zeroize, zeroize::ZeroizeOnDrop))]
 pub struct InternalKey16(u64, u64);
 
 impl InternalKey<U16> for InternalKey16 {
@@ -56,8 +56,8 @@ impl From<&GenericArray<u8, U16>> for InternalKey16 {
     }
 }
 
-#[derive(Clone, Copy)]
-#[cfg_attr(feature = "zeroize", derive(zeroize::Zeroize))]
+#[derive(Clone)]
+#[cfg_attr(feature = "zeroize", derive(zeroize::Zeroize, zeroize::ZeroizeOnDrop))]
 pub struct InternalKey24(u64, u64, u64);
 
 impl InternalKey<U20> for InternalKey24 {
