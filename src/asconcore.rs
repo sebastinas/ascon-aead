@@ -237,13 +237,13 @@ impl State {
 }
 
 /// Core implementation of Ascon for one encryption/decryption operation
-pub struct Core<P: Parameters> {
+pub struct Core<'a, P: Parameters> {
     state: State,
-    key: P::InternalKey,
+    key: &'a P::InternalKey,
 }
 
-impl<P: Parameters> Core<P> {
-    pub fn new(internal_key: &P::InternalKey, nonce: &Nonce) -> Self {
+impl<'a, P: Parameters> Core<'a, P> {
+    pub(crate) fn new(internal_key: &'a P::InternalKey, nonce: &Nonce) -> Self {
         let mut state = State::new(
             if P::KeySize::USIZE == 20 {
                 P::IV ^ internal_key.get_k0()
@@ -265,7 +265,7 @@ impl<P: Parameters> Core<P> {
 
         Self {
             state,
-            key: *internal_key,
+            key: internal_key,
         }
     }
 
@@ -423,13 +423,13 @@ impl<P: Parameters> Core<P> {
         Tag::from(tag)
     }
 
-    pub fn encrypt_inplace(&mut self, message: &mut [u8], associated_data: &[u8]) -> Tag {
+    pub(crate) fn encrypt_inplace(&mut self, message: &mut [u8], associated_data: &[u8]) -> Tag {
         self.process_associated_data(associated_data);
         self.process_encrypt_inplace(message);
         self.process_final()
     }
 
-    pub fn decrypt_inplace(
+    pub(crate) fn decrypt_inplace(
         &mut self,
         ciphertext: &mut [u8],
         associated_data: &[u8],
