@@ -9,10 +9,10 @@
 //! Simple usage (allocating, no associated data):
 //!
 //! ```
-//! use ascon_aead::{Ascon128, Ascon128Key, Nonce}; // Or `Ascon128a`
+//! use ascon_aead::{Ascon128, Key, Nonce}; // Or `Ascon128a`
 //! use ascon_aead::aead::{Aead, NewAead};
 //!
-//! let key = Ascon128Key::from_slice(b"very secret key.");
+//! let key = Key::<Ascon128>::from_slice(b"very secret key.");
 //! let cipher = Ascon128::new(key);
 //!
 //! let nonce = Nonce::from_slice(b"unique nonce 012"); // 128-bits; unique per message
@@ -34,11 +34,11 @@
 //!
 //! ```
 //! # #[cfg(feature = "heapless")] {
-//! use ascon_aead::{Ascon128, Ascon128Key, Nonce}; // Or `Ascon128a`
+//! use ascon_aead::{Ascon128, Key, Nonce}; // Or `Ascon128a`
 //! use ascon_aead::aead::{AeadInPlace, NewAead};
 //! use ascon_aead::aead::heapless::Vec;
 //!
-//! let key = Ascon128Key::from_slice(b"very secret key.");
+//! let key = Key::<Ascon128>::from_slice(b"very secret key.");
 //! let cipher = Ascon128::new(key);
 //!
 //! let nonce = Nonce::from_slice(b"unique nonce 012"); // 128-bits; unique per message
