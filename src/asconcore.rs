@@ -45,6 +45,7 @@ impl InternalKey<U16> for InternalKey16 {
 
 impl From<&GenericArray<u8, U16>> for InternalKey16 {
     fn from(key: &GenericArray<u8, U16>) -> Self {
+        // the array is exactly 16 bytes long, hence the following .try_into().unwrap() never fail
         Self(
             u64::from_be_bytes(key[..8].try_into().unwrap()),
             u64::from_be_bytes(key[8..].try_into().unwrap()),
@@ -75,6 +76,7 @@ impl InternalKey<U20> for InternalKey24 {
 
 impl From<&GenericArray<u8, U20>> for InternalKey24 {
     fn from(key: &GenericArray<u8, U20>) -> Self {
+        // the array is exactly 20 bytes long, hence the following .try_into().unwrap() never fail
         Self(
             u32::from_be_bytes(key[..4].try_into().unwrap()) as u64,
             u64::from_be_bytes(key[4..12].try_into().unwrap()),
@@ -97,6 +99,8 @@ pub trait Parameters {
     /// Number of bytes to process per round
     const COUNT: usize;
     /// Initialization vector used to initialize Ascon's state
+    ///
+    /// For internal use-only
     const IV: u64;
     /// Maximum blocks to be processed per key
     const B_MAX: u64;
@@ -115,6 +119,7 @@ impl Parameters for Parameters128 {
 
 /// Parameters for Ascon-128a
 pub struct Parameters128a;
+
 impl Parameters for Parameters128a {
     type KeySize = U16;
     type InternalKey = InternalKey16;
@@ -126,6 +131,7 @@ impl Parameters for Parameters128a {
 
 /// Parameters for Ascon-80pq
 pub struct Parameters80pq;
+
 impl Parameters for Parameters80pq {
     type KeySize = U20;
     type InternalKey = InternalKey24;
