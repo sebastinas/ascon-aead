@@ -77,7 +77,7 @@ pub use asconcore::{Nonce, Parameters, Parameters128, Parameters128a, Parameters
 /// Ascon generic over some Parameters
 ///
 /// This type is generic to support substituting various Ascon parameter sets. It is not intended to
-/// use directly. Use the [`Ascon128`] and [`Ascon128a`] type aliases instead.
+/// use directly. Use the [`Ascon128`], [`Ascon128a`], [`Ascon80pq`] type aliases instead.
 #[derive(Clone)]
 pub struct Ascon<P: Parameters> {
     key: P::InternalKey,
@@ -91,6 +91,10 @@ pub type Ascon128Key = Key<Ascon128>;
 pub type Ascon128a = Ascon<Parameters128a>;
 /// Key for Ascon-128a
 pub type Ascon128aKey = Key<Ascon128a>;
+/// Ascon-80pq
+pub type Ascon80pq = Ascon<Parameters80pq>;
+/// Key for Ascon-80pq
+pub type Ascon80pqKey = Key<Ascon80pq>;
 
 impl<P: Parameters> NewAead for Ascon<P> {
     type KeySize = P::KeySize;
