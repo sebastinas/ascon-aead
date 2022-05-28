@@ -64,15 +64,16 @@
 #![no_std]
 #![warn(missing_docs)]
 
+pub use aead::{self, AeadCore, AeadInPlace, Error, Key, NewAead};
+use aead::{
+    consts::{U0, U16},
+    generic_array::GenericArray,
+};
+
 mod asconcore;
 
-pub use aead::{
-    self,
-    consts::{U0, U16},
-    AeadCore, AeadInPlace, Buffer, Error, Key, NewAead,
-};
 use asconcore::Core;
-pub use asconcore::{Nonce, Parameters, Parameters128, Parameters128a, Parameters80pq, Tag};
+pub use asconcore::{Parameters, Parameters128, Parameters128a, Parameters80pq};
 
 /// Ascon generic over some Parameters
 ///
@@ -95,6 +96,12 @@ pub type Ascon128aKey = Key<Ascon128a>;
 pub type Ascon80pq = Ascon<Parameters80pq>;
 /// Key for Ascon-80pq
 pub type Ascon80pqKey = Key<Ascon80pq>;
+
+/// Ascon nonces
+pub type Nonce = GenericArray<u8, U16>;
+
+/// Ascon tags
+pub type Tag = GenericArray<u8, U16>;
 
 impl<P: Parameters> NewAead for Ascon<P> {
     type KeySize = P::KeySize;

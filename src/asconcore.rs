@@ -6,11 +6,7 @@ use aead::{
 };
 use subtle::ConstantTimeEq;
 
-/// Ascon nonces
-pub type Nonce = GenericArray<u8, U16>;
-
-/// Ascon tags
-pub type Tag = GenericArray<u8, U16>;
+use crate::{Nonce, Tag};
 
 /// Helper trait for handling differences in key usage of Ascon-128* and Ascon-80*
 ///
