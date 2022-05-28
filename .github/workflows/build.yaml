@@ -7,14 +7,19 @@ env:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
+        fail-fast: false
         toolchain:
           - stable
           - beta
           - nightly
-    name: Test (${{matrix.toolchain}} toolchain)
+        os:
+          - ubuntu-latest
+          - windows-latest
+          - macos-latest
+    name: Test (${{matrix.toolchain}} toolchain, ${{matrix.os}})
     steps:
       - uses: actions/checkout@v3
       - uses: actions-rs/toolchain@v1
