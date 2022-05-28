@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2 (2022-05-28)
+
+* Implement support for Ascon-80pq
+  * Change interface to closer resamble `aead`
+  * `Key`, `Tag` and `Nonce` are now re-exported from `aead`
+* Reduce the number of re-exports
+* Bump `zeroize` dependency to 1.5
+
 ## 0.1.4 (2022-03-14)
 
 * Bump edition to 2021 and MSRV to 1.56
