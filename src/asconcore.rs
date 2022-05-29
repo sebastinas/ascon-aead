@@ -156,30 +156,28 @@ fn keyrot(lo2hi: u64, hi2lo: u64) -> u64 {
 
 /// The state of Ascon's permutation
 struct State {
-    x0: u64,
-    x1: u64,
-    x2: u64,
-    x3: u64,
-    x4: u64,
+    x: [u64; 5],
 }
 
 impl State {
     fn new(x0: u64, x1: u64, x2: u64, x3: u64, x4: u64) -> Self {
-        State { x0, x1, x2, x3, x4 }
+        State {
+            x: [x0, x1, x2, x3, x4],
+        }
     }
 
     /// Permute with a single round
     fn round(&mut self, c: u64) {
         // S-box layer
-        let x0 = self.x0 ^ self.x4;
-        let x2 = self.x2 ^ self.x1 ^ c; // with round constant
-        let x4 = self.x4 ^ self.x3;
+        let x0 = self.x[0] ^ self.x[4];
+        let x2 = self.x[2] ^ self.x[1] ^ c; // with round constant
+        let x4 = self.x[4] ^ self.x[3];
 
-        let tx0 = x0 ^ (!self.x1 & x2);
-        let tx1 = self.x1 ^ (!x2 & self.x3);
-        let tx2 = x2 ^ (!self.x3 & x4);
-        let tx3 = self.x3 ^ (!x4 & x0);
-        let tx4 = x4 ^ (!x0 & self.x1);
+        let tx0 = x0 ^ (!self.x[1] & x2);
+        let tx1 = self.x[1] ^ (!x2 & self.x[3]);
+        let tx2 = x2 ^ (!self.x[3] & x4);
+        let tx3 = self.x[3] ^ (!x4 & x0);
+        let tx4 = x4 ^ (!x0 & self.x[1]);
         let tx1 = tx1 ^ tx0;
         let tx3 = tx3 ^ tx2;
         let tx0 = tx0 ^ tx4;
@@ -190,11 +188,11 @@ impl State {
         let x2 = tx2 ^ tx2.rotate_right(5);
         let x3 = tx3 ^ tx3.rotate_right(7);
         let x4 = tx4 ^ tx4.rotate_right(34);
-        self.x0 = tx0 ^ x0.rotate_right(19);
-        self.x1 = tx1 ^ x1.rotate_right(39);
-        self.x2 = !(tx2 ^ x2.rotate_right(1));
-        self.x3 = tx3 ^ x3.rotate_right(10);
-        self.x4 = tx4 ^ x4.rotate_right(7);
+        self.x[0] = tx0 ^ x0.rotate_right(19);
+        self.x[1] = tx1 ^ x1.rotate_right(39);
+        self.x[2] = !(tx2 ^ x2.rotate_right(1));
+        self.x[3] = tx3 ^ x3.rotate_right(10);
+        self.x[4] = tx4 ^ x4.rotate_right(7);
     }
 
     /// Permutation with 12 rounds
@@ -258,10 +256,10 @@ impl<'a, P: Parameters> AEADCore<'a, P> {
 
         state.permute_12();
         if P::KeySize::USIZE == 20 {
-            state.x2 ^= internal_key.get_k0();
+            state.x[2] ^= internal_key.get_k0();
         }
-        state.x3 ^= internal_key.get_k1();
-        state.x4 ^= internal_key.get_k2();
+        state.x[3] ^= internal_key.get_k1();
+        state.x[4] ^= internal_key.get_k2();
 
         Self {
             state,
@@ -272,8 +270,8 @@ impl<'a, P: Parameters> AEADCore<'a, P> {
     /// Permutation with 12 rounds and application of the key at the end
     fn permute_12_and_apply_key(&mut self) {
         self.state.permute_12();
-        self.state.x3 ^= self.key.get_k1();
-        self.state.x4 ^= self.key.get_k2();
+        self.state.x[3] ^= self.key.get_k1();
+        self.state.x[4] ^= self.key.get_k2();
     }
 
     /// Permutation with 6 or 8 rounds based on the parameters
@@ -292,10 +290,10 @@ impl<'a, P: Parameters> AEADCore<'a, P> {
         if len > 0 {
             while len >= P::COUNT {
                 // process full block of associated data
-                self.state.x0 ^=
+                self.state.x[0] ^=
                     u64::from_be_bytes(associated_data[idx..idx + 8].try_into().unwrap());
                 if P::COUNT == 16 {
-                    self.state.x1 ^=
+                    self.state.x[1] ^=
                         u64::from_be_bytes(associated_data[idx + 8..idx + 16].try_into().unwrap());
                 }
                 self.permute_state();
@@ -305,13 +303,13 @@ impl<'a, P: Parameters> AEADCore<'a, P> {
 
             // process partial block if it exists
             let px = if P::COUNT == 16 && len >= 8 {
-                self.state.x0 ^=
+                self.state.x[0] ^=
                     u64::from_be_bytes(associated_data[idx..idx + 8].try_into().unwrap());
                 len -= 8;
                 idx += 8;
-                &mut self.state.x1
+                &mut self.state.x[1]
             } else {
-                &mut self.state.x0
+                &mut self.state.x[0]
             };
             *px ^= pad(len);
             if len > 0 {
@@ -323,7 +321,7 @@ impl<'a, P: Parameters> AEADCore<'a, P> {
         }
 
         // domain separation
-        self.state.x4 ^= 1;
+        self.state.x[4] ^= 1;
     }
 
     fn process_encrypt_inplace(&mut self, message: &mut [u8]) {
@@ -331,11 +329,12 @@ impl<'a, P: Parameters> AEADCore<'a, P> {
         let mut idx: usize = 0;
         while len >= P::COUNT {
             // process full block of message
-            self.state.x0 ^= u64::from_be_bytes(message[idx..idx + 8].try_into().unwrap());
-            message[idx..idx + 8].copy_from_slice(&u64::to_be_bytes(self.state.x0));
+            self.state.x[0] ^= u64::from_be_bytes(message[idx..idx + 8].try_into().unwrap());
+            message[idx..idx + 8].copy_from_slice(&u64::to_be_bytes(self.state.x[0]));
             if P::COUNT == 16 {
-                self.state.x1 ^= u64::from_be_bytes(message[idx + 8..idx + 16].try_into().unwrap());
-                message[idx + 8..idx + 16].copy_from_slice(&u64::to_be_bytes(self.state.x1));
+                self.state.x[1] ^=
+                    u64::from_be_bytes(message[idx + 8..idx + 16].try_into().unwrap());
+                message[idx + 8..idx + 16].copy_from_slice(&u64::to_be_bytes(self.state.x[1]));
             }
             self.permute_state();
             len -= P::COUNT;
@@ -344,13 +343,13 @@ impl<'a, P: Parameters> AEADCore<'a, P> {
 
         // process partial block if it exists
         let px = if P::COUNT == 16 && len >= 8 {
-            self.state.x0 ^= u64::from_be_bytes(message[idx..idx + 8].try_into().unwrap());
-            message[idx..idx + 8].copy_from_slice(&u64::to_be_bytes(self.state.x0));
+            self.state.x[0] ^= u64::from_be_bytes(message[idx..idx + 8].try_into().unwrap());
+            message[idx..idx + 8].copy_from_slice(&u64::to_be_bytes(self.state.x[0]));
             len -= 8;
             idx += 8;
-            &mut self.state.x1
+            &mut self.state.x[1]
         } else {
-            &mut self.state.x0
+            &mut self.state.x[0]
         };
         *px ^= pad(len);
         if len > 0 {
@@ -367,13 +366,13 @@ impl<'a, P: Parameters> AEADCore<'a, P> {
         while len >= P::COUNT {
             // process full block of ciphertext
             let cx = u64::from_be_bytes(ciphertext[idx..idx + 8].try_into().unwrap());
-            ciphertext[idx..idx + 8].copy_from_slice(&u64::to_be_bytes(self.state.x0 ^ cx));
-            self.state.x0 = cx;
+            ciphertext[idx..idx + 8].copy_from_slice(&u64::to_be_bytes(self.state.x[0] ^ cx));
+            self.state.x[0] = cx;
             if P::COUNT == 16 {
                 let cx = u64::from_be_bytes(ciphertext[idx + 8..idx + 16].try_into().unwrap());
                 ciphertext[idx + 8..idx + 16]
-                    .copy_from_slice(&u64::to_be_bytes(self.state.x1 ^ cx));
-                self.state.x1 = cx;
+                    .copy_from_slice(&u64::to_be_bytes(self.state.x[1] ^ cx));
+                self.state.x[1] = cx;
             }
             self.permute_state();
             len -= P::COUNT;
@@ -383,13 +382,13 @@ impl<'a, P: Parameters> AEADCore<'a, P> {
         // process partial block if it exists
         let px = if P::COUNT == 16 && len >= 8 {
             let cx = u64::from_be_bytes(ciphertext[idx..idx + 8].try_into().unwrap());
-            ciphertext[idx..idx + 8].copy_from_slice(&u64::to_be_bytes(self.state.x0 ^ cx));
-            self.state.x0 = cx;
+            ciphertext[idx..idx + 8].copy_from_slice(&u64::to_be_bytes(self.state.x[0] ^ cx));
+            self.state.x[0] = cx;
             len -= 8;
             idx += 8;
-            &mut self.state.x1
+            &mut self.state.x[1]
         } else {
-            &mut self.state.x0
+            &mut self.state.x[0]
         };
         *px ^= pad(len);
         if len > 0 {
@@ -404,22 +403,22 @@ impl<'a, P: Parameters> AEADCore<'a, P> {
 
     fn process_final(&mut self) -> [u8; 16] {
         if P::KeySize::USIZE == 16 && P::COUNT == 8 {
-            self.state.x1 ^= self.key.get_k1();
-            self.state.x2 ^= self.key.get_k2();
+            self.state.x[1] ^= self.key.get_k1();
+            self.state.x[2] ^= self.key.get_k2();
         } else if P::KeySize::USIZE == 16 && P::COUNT == 16 {
-            self.state.x2 ^= self.key.get_k1();
-            self.state.x3 ^= self.key.get_k2();
+            self.state.x[2] ^= self.key.get_k1();
+            self.state.x[3] ^= self.key.get_k2();
         } else if P::KeySize::USIZE == 20 {
-            self.state.x1 ^= keyrot(self.key.get_k0(), self.key.get_k1());
-            self.state.x2 ^= keyrot(self.key.get_k1(), self.key.get_k2());
-            self.state.x3 ^= keyrot(self.key.get_k2(), 0);
+            self.state.x[1] ^= keyrot(self.key.get_k0(), self.key.get_k1());
+            self.state.x[2] ^= keyrot(self.key.get_k1(), self.key.get_k2());
+            self.state.x[3] ^= keyrot(self.key.get_k2(), 0);
         }
 
         self.permute_12_and_apply_key();
 
         let mut tag = [0u8; 16];
-        tag[..8].copy_from_slice(&u64::to_be_bytes(self.state.x3));
-        tag[8..].copy_from_slice(&u64::to_be_bytes(self.state.x4));
+        tag[..8].copy_from_slice(&u64::to_be_bytes(self.state.x[3]));
+        tag[8..].copy_from_slice(&u64::to_be_bytes(self.state.x[4]));
         tag
     }
 
@@ -488,11 +487,11 @@ mod tests {
             0x89abcdef01234567,
         );
         state.permute_12();
-        assert_eq!(state.x0, 0x206416dfc624bb14);
-        assert_eq!(state.x1, 0x1b0c47a601058aab);
-        assert_eq!(state.x2, 0x8934cfc93814cddd);
-        assert_eq!(state.x3, 0xa9738d287a748e4b);
-        assert_eq!(state.x4, 0xddd934f058afc7e1);
+        assert_eq!(state.x[0], 0x206416dfc624bb14);
+        assert_eq!(state.x[1], 0x1b0c47a601058aab);
+        assert_eq!(state.x[2], 0x8934cfc93814cddd);
+        assert_eq!(state.x[3], 0xa9738d287a748e4b);
+        assert_eq!(state.x[4], 0xddd934f058afc7e1);
     }
 
     #[test]
@@ -505,11 +504,11 @@ mod tests {
             0x89abcdef01234567,
         );
         state.permute_6();
-        assert_eq!(state.x0, 0xc27b505c635eb07f);
-        assert_eq!(state.x1, 0xd388f5d2a72046fa);
-        assert_eq!(state.x2, 0x9e415c204d7b15e7);
-        assert_eq!(state.x3, 0xce0d71450fe44581);
-        assert_eq!(state.x4, 0xdd7c5fef57befe48);
+        assert_eq!(state.x[0], 0xc27b505c635eb07f);
+        assert_eq!(state.x[1], 0xd388f5d2a72046fa);
+        assert_eq!(state.x[2], 0x9e415c204d7b15e7);
+        assert_eq!(state.x[3], 0xce0d71450fe44581);
+        assert_eq!(state.x[4], 0xdd7c5fef57befe48);
     }
 
     #[test]
@@ -522,10 +521,10 @@ mod tests {
             0x89abcdef01234567,
         );
         state.permute_8();
-        assert_eq!(state.x0, 0x67ed228272f46eee);
-        assert_eq!(state.x1, 0x80bc0b097aad7944);
-        assert_eq!(state.x2, 0x2fa599382c6db215);
-        assert_eq!(state.x3, 0x368133fae2f7667a);
-        assert_eq!(state.x4, 0x28cefb195a7c651c);
+        assert_eq!(state.x[0], 0x67ed228272f46eee);
+        assert_eq!(state.x[1], 0x80bc0b097aad7944);
+        assert_eq!(state.x[2], 0x2fa599382c6db215);
+        assert_eq!(state.x[3], 0x368133fae2f7667a);
+        assert_eq!(state.x[4], 0x28cefb195a7c651c);
     }
 }
