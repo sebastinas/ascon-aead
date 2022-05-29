@@ -302,20 +302,20 @@ impl<'a, P: Parameters> AEADCore<'a, P> {
             }
 
             // process partial block if it exists
-            let px = if P::COUNT == 16 && len >= 8 {
+            let sidx = if P::COUNT == 16 && len >= 8 {
                 self.state.x[0] ^=
                     u64::from_be_bytes(associated_data[idx..idx + 8].try_into().unwrap());
                 len -= 8;
                 idx += 8;
-                &mut self.state.x[1]
+                1
             } else {
-                &mut self.state.x[0]
+                0
             };
-            *px ^= pad(len);
+            self.state.x[sidx] ^= pad(len);
             if len > 0 {
                 let mut tmp: [u8; 8] = [0; 8];
                 tmp[0..len].copy_from_slice(&associated_data[idx..]);
-                *px ^= u64::from_be_bytes(tmp);
+                self.state.x[sidx] ^= u64::from_be_bytes(tmp);
             }
             self.permute_state();
         }
@@ -342,21 +342,21 @@ impl<'a, P: Parameters> AEADCore<'a, P> {
         }
 
         // process partial block if it exists
-        let px = if P::COUNT == 16 && len >= 8 {
+        let sidx = if P::COUNT == 16 && len >= 8 {
             self.state.x[0] ^= u64::from_be_bytes(message[idx..idx + 8].try_into().unwrap());
             message[idx..idx + 8].copy_from_slice(&u64::to_be_bytes(self.state.x[0]));
             len -= 8;
             idx += 8;
-            &mut self.state.x[1]
+            1
         } else {
-            &mut self.state.x[0]
+            0
         };
-        *px ^= pad(len);
+        self.state.x[sidx] ^= pad(len);
         if len > 0 {
             let mut tmp: [u8; 8] = [0; 8];
             tmp[0..len].copy_from_slice(&message[idx..]);
-            *px ^= u64::from_be_bytes(tmp);
-            message[idx..].copy_from_slice(&u64::to_be_bytes(*px)[0..len]);
+            self.state.x[sidx] ^= u64::from_be_bytes(tmp);
+            message[idx..].copy_from_slice(&u64::to_be_bytes(self.state.x[sidx])[0..len]);
         }
     }
 
@@ -380,24 +380,24 @@ impl<'a, P: Parameters> AEADCore<'a, P> {
         }
 
         // process partial block if it exists
-        let px = if P::COUNT == 16 && len >= 8 {
+        let sidx = if P::COUNT == 16 && len >= 8 {
             let cx = u64::from_be_bytes(ciphertext[idx..idx + 8].try_into().unwrap());
             ciphertext[idx..idx + 8].copy_from_slice(&u64::to_be_bytes(self.state.x[0] ^ cx));
             self.state.x[0] = cx;
             len -= 8;
             idx += 8;
-            &mut self.state.x[1]
+            1
         } else {
-            &mut self.state.x[0]
+            0
         };
-        *px ^= pad(len);
+        self.state.x[sidx] ^= pad(len);
         if len > 0 {
             let mut tmp: [u8; 8] = [0; 8];
             tmp[0..len].copy_from_slice(&ciphertext[idx..]);
             let cx = u64::from_be_bytes(tmp);
-            *px ^= cx;
-            ciphertext[idx..].copy_from_slice(&u64::to_be_bytes(*px)[0..len]);
-            *px = clear(*px, len) ^ cx;
+            self.state.x[sidx] ^= cx;
+            ciphertext[idx..].copy_from_slice(&u64::to_be_bytes(self.state.x[sidx])[0..len]);
+            self.state.x[sidx] = clear(self.state.x[sidx], len) ^ cx;
         }
     }
 
