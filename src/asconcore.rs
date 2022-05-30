@@ -142,17 +142,17 @@ impl Parameters for Parameters80pq {
 }
 
 #[inline(always)]
-fn pad(n: usize) -> u64 {
+const fn pad(n: usize) -> u64 {
     (0x80_u64) << (56 - 8 * n)
 }
 
 #[inline(always)]
-fn clear(word: u64, n: usize) -> u64 {
+const fn clear(word: u64, n: usize) -> u64 {
     word & (0x00ffffffffffffff >> (n * 8 - 8))
 }
 
 #[inline(always)]
-fn keyrot(lo2hi: u64, hi2lo: u64) -> u64 {
+const fn keyrot(lo2hi: u64, hi2lo: u64) -> u64 {
     lo2hi << 32 | hi2lo >> 32
 }
 
