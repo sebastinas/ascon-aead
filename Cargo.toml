@@ -19,6 +19,7 @@ subtle = "2"
 zeroize = { version = "1.5", optional = true, default-features = false, features = [
     "derive",
 ] }
+ascon-core = { version = "0.1.0", path = "ascon-core" }
 
 [dev-dependencies]
 hex = "0.4"
@@ -36,3 +37,6 @@ heapless = ["aead/heapless"]
 name = "asconbenches"
 harness = false
 required-features = ["default", "std"]
+
+[workspace]
+members = ["ascon-core"]
