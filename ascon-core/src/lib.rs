@@ -10,10 +10,12 @@
 #![no_std]
 #![warn(missing_docs)]
 
+use core::mem::size_of;
+
 /// Produce mask for padding.
 #[inline(always)]
 pub const fn pad(n: usize) -> u64 {
-    (0x80_u64) << (56 - 8 * n)
+    0x80_u64 << (56 - 8 * n)
 }
 
 /// Clear bytes from a 64 bit word.
@@ -23,6 +25,8 @@ pub const fn clear(word: u64, n: usize) -> u64 {
 }
 
 /// The state of Ascon's permutation.
+///
+/// The permutation operates on a state of 320 bits represneted as 5 64 bit words.
 #[derive(Clone, Copy, Debug)]
 pub struct State {
     x: [u64; 5],
@@ -102,6 +106,18 @@ impl State {
         self.round(0x5a);
         self.round(0x4b);
     }
+
+    /// Convert state to bytes.
+    pub fn as_bytes(&self) -> [u8; 40] {
+        let mut bytes = [0u8; size_of::<u64>() * 5];
+        for (dst, src) in bytes
+            .chunks_exact_mut(size_of::<u64>())
+            .zip(self.x.into_iter())
+        {
+            dst.copy_from_slice(&u64::to_be_bytes(src));
+        }
+        bytes
+    }
 }
 
 impl core::ops::Index<usize> for State {
@@ -117,6 +133,61 @@ impl core::ops::IndexMut<usize> for State {
     #[inline(always)]
     fn index_mut(&mut self, index: usize) -> &mut Self::Output {
         &mut self.x[index]
+    }
+}
+
+impl TryFrom<&[u64]> for State {
+    type Error = ();
+
+    fn try_from(value: &[u64]) -> Result<Self, Self::Error> {
+        match value.len() {
+            5 => Ok(Self::new(value[0], value[1], value[2], value[3], value[4])),
+            _ => Err(()),
+        }
+    }
+}
+
+impl From<&[u64; 5]> for State {
+    fn from(value: &[u64; 5]) -> Self {
+        Self::new(value[0], value[1], value[2], value[3], value[4])
+    }
+}
+
+impl TryFrom<&[u8]> for State {
+    type Error = ();
+
+    fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
+        if value.len() != core::mem::size_of::<u64>() * 5 {
+            return Err(());
+        }
+
+        let mut x = [0u64; 5];
+        for (src, dst) in value
+            .chunks_exact(core::mem::size_of::<u64>())
+            .zip(x.iter_mut())
+        {
+            *dst = u64::from_be_bytes(src.try_into().unwrap());
+        }
+        Ok(Self { x })
+    }
+}
+
+impl From<&[u8; size_of::<u64>() * 5]> for State {
+    fn from(value: &[u8; size_of::<u64>() * 5]) -> Self {
+        let mut x = [0u64; 5];
+        for (src, dst) in value
+            .chunks_exact(core::mem::size_of::<u64>())
+            .zip(x.iter_mut())
+        {
+            *dst = u64::from_be_bytes(src.try_into().unwrap());
+        }
+        Self { x }
+    }
+}
+
+impl AsRef<[u64]> for State {
+    fn as_ref(&self) -> &[u64] {
+        &self.x
     }
 }
 
@@ -196,5 +267,23 @@ mod tests {
         assert_eq!(state[2], 0x2fa599382c6db215);
         assert_eq!(state[3], 0x368133fae2f7667a);
         assert_eq!(state[4], 0x28cefb195a7c651c);
+    }
+
+    #[test]
+    fn state_convert_bytes() {
+        let state = State::new(
+            0x0123456789abcdef,
+            0xef0123456789abcd,
+            0xcdef0123456789ab,
+            0xabcdef0123456789,
+            0x89abcdef01234567,
+        );
+        let bytes = state.as_bytes();
+
+        let state2 = State::try_from(bytes.as_slice());
+        assert_eq!(state2.expect("try_from bytes").x, state.x);
+
+        let state2 = State::from(&bytes);
+        assert_eq!(state2.x, state.x);
     }
 }
