@@ -1,5 +1,5 @@
-use ascon_hash::{AsconAHash, AsconHash};
-use digest::{Digest, Reset};
+use ascon_hash::{AsconAHash, AsconHash, Digest};
+use digest::Reset;
 use spectral::prelude::{asserting, OrderedAssertions};
 use std::collections::HashMap;
 use std::include_str;

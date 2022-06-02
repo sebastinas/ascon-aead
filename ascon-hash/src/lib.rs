@@ -6,7 +6,7 @@
 use core::marker::PhantomData;
 
 use ascon_core::{pad, State};
-pub use digest;
+pub use digest::{self, Digest};
 use digest::{
     block_buffer::Eager,
     consts::{U32, U8},
