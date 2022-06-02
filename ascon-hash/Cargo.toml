@@ -1,7 +1,17 @@
 [package]
 name = "ascon-hash"
+description = "Implementation of the Ascon and AsconA hashes"
 version = "0.1.0"
+authors = ["Sebastian Ramacher <sebastian.ramacher@ait.ac.at>"]
+license = "MIT"
+repository = "https://github.com/sebastinas/ascon-aead"
+homepage = "https://github.com/sebastinas/ascon-aead"
+readme = "README.md"
 edition = "2021"
+rust-version = "1.56"
+keywords = ["hash", "ascon"]
+categories = ["cryptography", "no-std"]
+exclude = [".github/", ".gitignore"]
 
 [dependencies]
 digest = { version = "0.10", default-features = false, features = ["core-api"] }
