@@ -32,11 +32,16 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: test
+          args: --workspace
+      - name: Test with default features
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
       - name: Test with all features
         uses: actions-rs/cargo@v1
         with:
           command: test
-          args: --all-features
+          args: --workspace --all-features
 
   test-cross:
     runs-on: ubuntu-latest
@@ -65,12 +70,13 @@ jobs:
         with:
           use-cross: true
           command: test
+          args: --workspace --target ${{matrix.target}}
       - name: Test with all features
         uses: actions-rs/cargo@v1
         with:
           use-cross: true
           command: test
-          args: --all-features --target ${{matrix.target}}
+          args: --workspace --all-features --target ${{matrix.target}}
 
   fmt:
     name: Rustfmt
@@ -102,4 +108,4 @@ jobs:
       - uses: actions-rs/clippy-check@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          args: -- -D warnings
+          args: --workspace -- -D warnings
