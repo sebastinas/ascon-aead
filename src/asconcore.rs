@@ -327,7 +327,7 @@ impl<'a, P: Parameters> AEADCore<'a, P> {
             };
             self.state[sidx] ^= pad(associated_data.len());
             if !associated_data.is_empty() {
-                let mut tmp: [u8; 8] = [0; 8];
+                let mut tmp = [0u8; 8];
                 tmp[0..associated_data.len()].copy_from_slice(associated_data);
                 self.state[sidx] ^= u64::from_be_bytes(tmp);
             }
@@ -362,7 +362,7 @@ impl<'a, P: Parameters> AEADCore<'a, P> {
         };
         self.state[sidx] ^= pad(message.len());
         if !message.is_empty() {
-            let mut tmp: [u8; 8] = [0; 8];
+            let mut tmp = [0u8; 8];
             tmp[0..message.len()].copy_from_slice(message);
             self.state[sidx] ^= u64::from_be_bytes(tmp);
             message.copy_from_slice(&u64::to_be_bytes(self.state[sidx])[0..message.len()]);
@@ -396,7 +396,7 @@ impl<'a, P: Parameters> AEADCore<'a, P> {
         };
         self.state[sidx] ^= pad(ciphertext.len());
         if !ciphertext.is_empty() {
-            let mut tmp: [u8; 8] = [0; 8];
+            let mut tmp = [0u8; 8];
             tmp[0..ciphertext.len()].copy_from_slice(ciphertext);
             let cx = u64::from_be_bytes(tmp);
             self.state[sidx] ^= cx;
