@@ -3,7 +3,7 @@
 ## 0.2 (2022-05-28)
 
 * Implement support for Ascon-80pq
-  * Change interface to closer resamble `aead`
+  * Change interface to closer resemble `aead`
   * `Key`, `Tag` and `Nonce` are now re-exported from `aead`
 * Reduce the number of re-exports
 * Bump `zeroize` dependency to 1.5
