@@ -10,7 +10,7 @@ readme = "README.md"
 edition = "2021"
 rust-version = "1.56"
 keywords = ["AEAD", "ascon", "encryption"]
-categories = ["cryptography"]
+categories = ["cryptography", "no-std"]
 exclude = [".github/", ".gitignore"]
 
 [dependencies]
