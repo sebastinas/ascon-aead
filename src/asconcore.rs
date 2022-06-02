@@ -302,37 +302,33 @@ impl<'a, P: Parameters> AEADCore<'a, P> {
         }
     }
 
-    fn process_associated_data(&mut self, associated_data: &[u8]) {
-        let mut len = associated_data.len();
-        let mut idx: usize = 0;
-        if len > 0 {
-            while len >= P::COUNT {
+    fn process_associated_data(&mut self, mut associated_data: &[u8]) {
+        if !associated_data.is_empty() {
+            // TODO: rewrite with as_chunks once stabilized
+            // https://github.com/rust-lang/rust/issues/74985
+
+            while associated_data.len() >= P::COUNT {
                 // process full block of associated data
-                self.state[0] ^=
-                    u64::from_be_bytes(associated_data[idx..idx + 8].try_into().unwrap());
+                self.state[0] ^= u64::from_be_bytes(associated_data[..8].try_into().unwrap());
                 if P::COUNT == 16 {
-                    self.state[1] ^=
-                        u64::from_be_bytes(associated_data[idx + 8..idx + 16].try_into().unwrap());
+                    self.state[1] ^= u64::from_be_bytes(associated_data[8..16].try_into().unwrap());
                 }
                 self.permute_state();
-                len -= P::COUNT;
-                idx += P::COUNT;
+                associated_data = &associated_data[P::COUNT..];
             }
 
             // process partial block if it exists
-            let sidx = if P::COUNT == 16 && len >= 8 {
-                self.state[0] ^=
-                    u64::from_be_bytes(associated_data[idx..idx + 8].try_into().unwrap());
-                len -= 8;
-                idx += 8;
+            let sidx = if P::COUNT == 16 && associated_data.len() >= 8 {
+                self.state[0] ^= u64::from_be_bytes(associated_data[..8].try_into().unwrap());
+                associated_data = &associated_data[8..];
                 1
             } else {
                 0
             };
-            self.state[sidx] ^= pad(len);
-            if len > 0 {
+            self.state[sidx] ^= pad(associated_data.len());
+            if !associated_data.is_empty() {
                 let mut tmp: [u8; 8] = [0; 8];
-                tmp[0..len].copy_from_slice(&associated_data[idx..]);
+                tmp[0..associated_data.len()].copy_from_slice(associated_data);
                 self.state[sidx] ^= u64::from_be_bytes(tmp);
             }
             self.permute_state();
@@ -342,79 +338,70 @@ impl<'a, P: Parameters> AEADCore<'a, P> {
         self.state[4] ^= 1;
     }
 
-    fn process_encrypt_inplace(&mut self, message: &mut [u8]) {
-        let mut len = message.len();
-        let mut idx: usize = 0;
-        while len >= P::COUNT {
+    fn process_encrypt_inplace(&mut self, mut message: &mut [u8]) {
+        while message.len() >= P::COUNT {
             // process full block of message
-            self.state[0] ^= u64::from_be_bytes(message[idx..idx + 8].try_into().unwrap());
-            message[idx..idx + 8].copy_from_slice(&u64::to_be_bytes(self.state[0]));
+            self.state[0] ^= u64::from_be_bytes(message[..8].try_into().unwrap());
+            message[..8].copy_from_slice(&u64::to_be_bytes(self.state[0]));
             if P::COUNT == 16 {
-                self.state[1] ^= u64::from_be_bytes(message[idx + 8..idx + 16].try_into().unwrap());
-                message[idx + 8..idx + 16].copy_from_slice(&u64::to_be_bytes(self.state[1]));
+                self.state[1] ^= u64::from_be_bytes(message[8..16].try_into().unwrap());
+                message[8..16].copy_from_slice(&u64::to_be_bytes(self.state[1]));
             }
             self.permute_state();
-            len -= P::COUNT;
-            idx += P::COUNT;
+            message = &mut message[P::COUNT..];
         }
 
         // process partial block if it exists
-        let sidx = if P::COUNT == 16 && len >= 8 {
-            self.state[0] ^= u64::from_be_bytes(message[idx..idx + 8].try_into().unwrap());
-            message[idx..idx + 8].copy_from_slice(&u64::to_be_bytes(self.state[0]));
-            len -= 8;
-            idx += 8;
+        let sidx = if P::COUNT == 16 && message.len() >= 8 {
+            self.state[0] ^= u64::from_be_bytes(message[..8].try_into().unwrap());
+            message[..8].copy_from_slice(&u64::to_be_bytes(self.state[0]));
+            message = &mut message[8..];
             1
         } else {
             0
         };
-        self.state[sidx] ^= pad(len);
-        if len > 0 {
+        self.state[sidx] ^= pad(message.len());
+        if !message.is_empty() {
             let mut tmp: [u8; 8] = [0; 8];
-            tmp[0..len].copy_from_slice(&message[idx..]);
+            tmp[0..message.len()].copy_from_slice(message);
             self.state[sidx] ^= u64::from_be_bytes(tmp);
-            message[idx..].copy_from_slice(&u64::to_be_bytes(self.state[sidx])[0..len]);
+            message.copy_from_slice(&u64::to_be_bytes(self.state[sidx])[0..message.len()]);
         }
     }
 
-    fn process_decrypt_inplace(&mut self, ciphertext: &mut [u8]) {
-        let mut len = ciphertext.len();
-        let mut idx: usize = 0;
-        while len >= P::COUNT {
+    fn process_decrypt_inplace(&mut self, mut ciphertext: &mut [u8]) {
+        while ciphertext.len() >= P::COUNT {
             // process full block of ciphertext
-            let cx = u64::from_be_bytes(ciphertext[idx..idx + 8].try_into().unwrap());
-            ciphertext[idx..idx + 8].copy_from_slice(&u64::to_be_bytes(self.state[0] ^ cx));
+            let cx = u64::from_be_bytes(ciphertext[..8].try_into().unwrap());
+            ciphertext[..8].copy_from_slice(&u64::to_be_bytes(self.state[0] ^ cx));
             self.state[0] = cx;
             if P::COUNT == 16 {
-                let cx = u64::from_be_bytes(ciphertext[idx + 8..idx + 16].try_into().unwrap());
-                ciphertext[idx + 8..idx + 16]
-                    .copy_from_slice(&u64::to_be_bytes(self.state[1] ^ cx));
+                let cx = u64::from_be_bytes(ciphertext[8..16].try_into().unwrap());
+                ciphertext[8..16].copy_from_slice(&u64::to_be_bytes(self.state[1] ^ cx));
                 self.state[1] = cx;
             }
             self.permute_state();
-            len -= P::COUNT;
-            idx += P::COUNT;
+            ciphertext = &mut ciphertext[P::COUNT..];
         }
 
         // process partial block if it exists
-        let sidx = if P::COUNT == 16 && len >= 8 {
-            let cx = u64::from_be_bytes(ciphertext[idx..idx + 8].try_into().unwrap());
-            ciphertext[idx..idx + 8].copy_from_slice(&u64::to_be_bytes(self.state[0] ^ cx));
+        let sidx = if P::COUNT == 16 && ciphertext.len() >= 8 {
+            let cx = u64::from_be_bytes(ciphertext[..8].try_into().unwrap());
+            ciphertext[..8].copy_from_slice(&u64::to_be_bytes(self.state[0] ^ cx));
             self.state[0] = cx;
-            len -= 8;
-            idx += 8;
+            ciphertext = &mut ciphertext[8..];
             1
         } else {
             0
         };
-        self.state[sidx] ^= pad(len);
-        if len > 0 {
+        self.state[sidx] ^= pad(ciphertext.len());
+        if !ciphertext.is_empty() {
             let mut tmp: [u8; 8] = [0; 8];
-            tmp[0..len].copy_from_slice(&ciphertext[idx..]);
+            tmp[0..ciphertext.len()].copy_from_slice(ciphertext);
             let cx = u64::from_be_bytes(tmp);
             self.state[sidx] ^= cx;
-            ciphertext[idx..].copy_from_slice(&u64::to_be_bytes(self.state[sidx])[0..len]);
-            self.state[sidx] = clear(self.state[sidx], len) ^ cx;
+            ciphertext.copy_from_slice(&u64::to_be_bytes(self.state[sidx])[0..ciphertext.len()]);
+            self.state[sidx] = clear(self.state[sidx], ciphertext.len()) ^ cx;
         }
     }
 
