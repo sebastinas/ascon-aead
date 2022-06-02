@@ -1,0 +1,12 @@
+[package]
+name = "ascon-hash"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+digest = { version = "0.10", default-features = false, features = ["core-api"] }
+ascon-core = { version = "0.1.0", path = "../ascon-core" }
+
+[dev-dependencies]
+hex = "0.4"
+spectral = "0.6"
