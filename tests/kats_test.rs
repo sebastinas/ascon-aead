@@ -8,6 +8,7 @@ use std::include_str;
 
 #[derive(Debug)]
 struct TestVector {
+    count: u32,
     key: Vec<u8>,
     nonce: Vec<u8>,
     plaintext: Vec<u8>,
@@ -17,6 +18,7 @@ struct TestVector {
 
 impl TestVector {
     fn new(
+        count: &str,
         key: &str,
         nonce: &str,
         plaintext: &str,
@@ -24,6 +26,7 @@ impl TestVector {
         ciphertext: &str,
     ) -> Self {
         Self {
+            count: count.parse().unwrap(),
             key: hex::decode(key).unwrap(),
             nonce: hex::decode(nonce).unwrap(),
             plaintext: hex::decode(plaintext).unwrap(),
@@ -35,7 +38,7 @@ impl TestVector {
 
 fn run_tv<P: Parameters>(tv: TestVector) {
     let core = Ascon::<P>::new(Key::<Ascon<P>>::from_slice(&tv.key));
-    asserting(format!("Test Vector {:?} encryption", tv).as_str())
+    asserting(format!("Test Vector {} encryption", tv.count).as_str())
         .that(&core.encrypt(
             Nonce::<Ascon<P>>::from_slice(&tv.nonce),
             Payload {
@@ -46,7 +49,7 @@ fn run_tv<P: Parameters>(tv: TestVector) {
         .is_ok()
         .is_equal_to(&tv.ciphertext);
 
-    asserting(format!("Test Vector {:?} decryption", tv).as_str())
+    asserting(format!("Test Vector {} decryption", tv.count).as_str())
         .that(&core.decrypt(
             Nonce::<Ascon<P>>::from_slice(&tv.nonce),
             Payload {
@@ -70,6 +73,7 @@ fn parse_tv(tvs: &str) -> TestVector {
     }
 
     TestVector::new(
+        &fields["Count"],
         &fields["Key"],
         &fields["Nonce"],
         &fields["PT"],
