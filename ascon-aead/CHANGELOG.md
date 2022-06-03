@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3 (2022-06-03)
+
+* Remove implementation of the Ascon permutation
+  * Add dependency on `ascon-core`
+* Remove parameters from the public interface
+
 ## 0.2 (2022-05-28)
 
 * Implement support for Ascon-80pq
