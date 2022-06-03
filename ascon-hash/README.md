@@ -1,6 +1,6 @@
 # Ascon hash
 
-Pure Rust implementation of the lightweight cryptographic hash functions [AsconHash and AsconAHash](https://ascon.iaik.tugraz.at).
+Pure Rust implementation of the lightweight cryptographic hash functions [AsconHash and AsconAHash](https://ascon.iaik.tugraz.at) and the extendable output functions (XOF)AsconXOF and AsconAXOF.
 
 ## Security Notes
 
