@@ -12,3 +12,11 @@ rust-version = "1.56"
 keywords = ["Ascon"]
 categories = ["cryptography", "no-std"]
 exclude = [".github/", ".gitignore"]
+
+[dev-dependencies]
+criterion = "0.3"
+rand = { version = "0.8", default-features = false, features = ["std_rng"] }
+
+[[bench]]
+name = "permutation"
+harness = false
