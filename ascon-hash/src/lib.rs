@@ -1,4 +1,25 @@
-//! # Ascon hash
+// Copyright 2022 Sebastian Ramacher
+// SPDX-License-Identifier: MIT
+
+//! # Hashing with [Ascon](https://ascon.iaik.tugraz.at/index.html)
+//!
+//! This crate provides implementations of the cryptographic hashes, AsconHash
+//! and AsconAHash, which are both based on the Ascon permutation.
+//!
+//! ## Security Notes
+//!
+//! This crate has received no security audit. Use at your own risk.
+//!
+//! ## Usage
+//!
+//! ```
+//! use ascon_hash::{AsconHash, Digest}; // Or `AsconAHash
+//!
+//! let mut hasher = AsconHash::new();
+//! hasher.update(b"some bytes");
+//! let digest = hasher.finalize();
+//! assert_eq!(&digest[..], b"\xb7\x42\xca\x75\xe5\x70\x38\x75\x70\x59\xcc\xcc\x68\x74\x71\x4f\x9d\xbd\x7f\xc5\x92\x4a\x7d\xf4\xe3\x16\x59\x4f\xd1\x42\x6c\xa8");
+//! ```
 
 #![no_std]
 #![warn(missing_docs)]
