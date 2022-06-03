@@ -4,21 +4,36 @@
 //! # Hashing with [Ascon](https://ascon.iaik.tugraz.at/index.html)
 //!
 //! This crate provides implementations of the cryptographic hashes, AsconHash
-//! and AsconAHash, which are both based on the Ascon permutation.
+//! and AsconAHash, which are both based on the Ascon permutation. Additionally,
+//! it also contains implementations of the extendable output functions AsconXOF
+//! and AsconAXOF.
 //!
 //! ## Security Notes
 //!
 //! This crate has received no security audit. Use at your own risk.
 //!
-//! ## Usage
+//! ## Usage (Hashing)
 //!
 //! ```
-//! use ascon_hash::{AsconHash, Digest}; // Or `AsconAHash
+//! use ascon_hash::{AsconHash, Digest}; // Or `AsconAHash`
 //!
 //! let mut hasher = AsconHash::new();
 //! hasher.update(b"some bytes");
 //! let digest = hasher.finalize();
 //! assert_eq!(&digest[..], b"\xb7\x42\xca\x75\xe5\x70\x38\x75\x70\x59\xcc\xcc\x68\x74\x71\x4f\x9d\xbd\x7f\xc5\x92\x4a\x7d\xf4\xe3\x16\x59\x4f\xd1\x42\x6c\xa8");
+//! ```
+//!
+//! ## Usage (XOF)
+//!
+//! ```
+//! use ascon_hash::{AsconXOF, ExtendableOutput, Update, XofReader};
+//!
+//! let mut xof = AsconXOF::default();
+//! xof.update(b"some bytes");
+//! let mut reader = xof.finalize_xof();
+//! let mut dst = [0u8; 5];
+//! reader.read(&mut dst);
+//! assert_eq!(&dst, b"\xc2\x19\x72\xfd\xe9");
 //! ```
 
 #![no_std]
@@ -27,7 +42,7 @@
 use core::marker::PhantomData;
 
 use ascon_core::{pad, State};
-pub use digest::{self, Digest, ExtendableOutput, Reset, XofReader};
+pub use digest::{self, Digest, ExtendableOutput, Reset, Update, XofReader};
 use digest::{
     block_buffer::Eager,
     consts::{U32, U8},
