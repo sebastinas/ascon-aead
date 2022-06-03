@@ -1,8 +1,11 @@
-use ascon_hash::{AsconAHash, AsconHash, Digest};
-use digest::Reset;
-use spectral::prelude::{asserting, OrderedAssertions};
 use std::collections::HashMap;
 use std::include_str;
+
+use spectral::prelude::{asserting, OrderedAssertions};
+
+use ascon_hash::{
+    AsconAHash, AsconAXOF, AsconHash, AsconXOF, Digest, ExtendableOutput, Reset, XofReader,
+};
 
 #[derive(Debug)]
 struct TestVector {
@@ -38,6 +41,22 @@ fn run_tv<H: Digest + Reset + Clone>(tv: TestVector) {
     asserting(format!("Test Vector {}: After reset", tv.count).as_str())
         .that(&digest2.as_ref())
         .is_equal_to(tv.digest.as_slice());
+}
+
+fn run_tv_xof<X: ExtendableOutput + Default>(tv: TestVector) {
+    let mut hasher = X::default();
+    hasher.update(&tv.message);
+    let mut reader = hasher.finalize_xof();
+    let mut digest = vec![0u8; tv.digest.len()];
+    reader.read(digest.as_mut_slice());
+    asserting(format!("Test Vector {}: XOF", tv.count).as_str())
+        .that(&digest)
+        .is_equal_to(&tv.digest);
+
+    reader.read(digest.as_mut_slice());
+    asserting(format!("Test Vector {}: XOF", tv.count).as_str())
+        .that(&digest)
+        .is_not_equal_to(&tv.digest);
 }
 
 fn parse_tvs(tvs: &str) -> Vec<TestVector> {
@@ -81,5 +100,21 @@ fn test_vectors_asconhasha() {
     let tvs = parse_tvs(include_str!("data/asconhasha.txt"));
     for tv in tvs {
         run_tv::<AsconAHash>(tv);
+    }
+}
+
+#[test]
+fn test_vectors_asconxof() {
+    let tvs = parse_tvs(include_str!("data/asconxof.txt"));
+    for tv in tvs {
+        run_tv_xof::<AsconXOF>(tv);
+    }
+}
+
+#[test]
+fn test_vectors_asconaxof() {
+    let tvs = parse_tvs(include_str!("data/asconxofa.txt"));
+    for tv in tvs {
+        run_tv_xof::<AsconAXOF>(tv);
     }
 }

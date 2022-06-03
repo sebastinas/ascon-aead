@@ -27,15 +27,16 @@
 use core::marker::PhantomData;
 
 use ascon_core::{pad, State};
-pub use digest::{self, Digest};
+pub use digest::{self, Digest, ExtendableOutput, Reset, XofReader};
 use digest::{
     block_buffer::Eager,
     consts::{U32, U8},
     core_api::{
-        AlgorithmName, Block, Buffer, BufferKindUser, CoreWrapper, FixedOutputCore, UpdateCore,
+        AlgorithmName, Block, Buffer, BufferKindUser, CoreWrapper, ExtendableOutputCore,
+        FixedOutputCore, UpdateCore, XofReaderCore, XofReaderCoreWrapper,
     },
     crypto_common::BlockSizeUser,
-    HashMarker, Output, OutputSizeUser, Reset,
+    HashMarker, Output, OutputSizeUser,
 };
 
 /// Parameters for Ascon hash instances.
@@ -81,6 +82,30 @@ impl HashParameters for ParametersA {
 }
 
 #[derive(Clone, Debug)]
+struct ParametersXOF;
+
+impl HashParameters for ParametersXOF {
+    const ROUNDS: usize = 12;
+    const IV0: u64 = 0xb57e273b814cd416;
+    const IV1: u64 = 0x2b51042562ae2420;
+    const IV2: u64 = 0x66a3a7768ddf2218;
+    const IV3: u64 = 0x5aad0a7a8153650c;
+    const IV4: u64 = 0x4f3e0e32539493b6;
+}
+
+#[derive(Clone, Debug)]
+struct ParametersAXOF;
+
+impl HashParameters for ParametersAXOF {
+    const ROUNDS: usize = 8;
+    const IV0: u64 = 0x44906568b77b9832;
+    const IV1: u64 = 0xcd8d6cae53455532;
+    const IV2: u64 = 0xf7b5212756422129;
+    const IV3: u64 = 0x246885e1de0d225b;
+    const IV4: u64 = 0xa8cb5ce33449973f;
+}
+
+#[derive(Clone, Debug)]
 struct HashCore<P: HashParameters> {
     state: State,
     phantom: PhantomData<P>,
@@ -105,6 +130,7 @@ impl<P: HashParameters> HashCore<P> {
         self.state.permute_12();
     }
 
+    // for fixed-sized output
     fn squeeze(&mut self, mut block: &mut [u8]) {
         debug_assert_eq!(block.len() % 8, 0);
 
@@ -114,6 +140,13 @@ impl<P: HashParameters> HashCore<P> {
             block = &mut block[8..];
         }
         block[..8].copy_from_slice(&u64::to_be_bytes(self.state[0]));
+    }
+
+    // for XOF output
+    fn squeeze_block(&mut self) -> [u8; 8] {
+        let ret = u64::to_be_bytes(self.state[0]);
+        self.permute_state();
+        ret
     }
 
     #[inline(always)]
@@ -235,7 +268,145 @@ impl AlgorithmName for AsconACore {
     }
 }
 
+/// Ascon XOF
+#[derive(Clone, Debug, Default)]
+pub struct AsconXOFCore {
+    state: HashCore<ParametersXOF>,
+}
+
+impl HashMarker for AsconXOFCore {}
+
+impl BlockSizeUser for AsconXOFCore {
+    type BlockSize = U8;
+}
+
+impl BufferKindUser for AsconXOFCore {
+    type BufferKind = Eager;
+}
+
+impl UpdateCore for AsconXOFCore {
+    fn update_blocks(&mut self, blocks: &[Block<Self>]) {
+        for block in blocks {
+            self.state.absorb_block(block.as_ref());
+        }
+    }
+}
+
+/// Reader for XOF output
+#[derive(Clone, Debug)]
+pub struct AsconXOFReaderCore {
+    hasher: HashCore<ParametersXOF>,
+}
+
+impl BlockSizeUser for AsconXOFReaderCore {
+    type BlockSize = U8;
+}
+
+impl XofReaderCore for AsconXOFReaderCore {
+    fn read_block(&mut self) -> Block<Self> {
+        self.hasher.squeeze_block().into()
+    }
+}
+
+impl ExtendableOutputCore for AsconXOFCore {
+    type ReaderCore = AsconXOFReaderCore;
+
+    fn finalize_xof_core(&mut self, buffer: &mut Buffer<Self>) -> Self::ReaderCore {
+        debug_assert!(buffer.get_pos() < 8);
+        self.state
+            .absorb_last_block(&buffer.get_data()[..buffer.get_pos()]);
+        Self::ReaderCore {
+            hasher: self.state.clone(),
+        }
+    }
+}
+
+impl Reset for AsconXOFCore {
+    fn reset(&mut self) {
+        *self = Default::default();
+    }
+}
+
+impl AlgorithmName for AsconXOFCore {
+    fn write_alg_name(f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.write_str("AsconXOF")
+    }
+}
+
+/// AsconA XOF
+#[derive(Clone, Debug, Default)]
+pub struct AsconAXOFCore {
+    state: HashCore<ParametersAXOF>,
+}
+
+impl HashMarker for AsconAXOFCore {}
+
+impl BlockSizeUser for AsconAXOFCore {
+    type BlockSize = U8;
+}
+
+impl BufferKindUser for AsconAXOFCore {
+    type BufferKind = Eager;
+}
+
+impl UpdateCore for AsconAXOFCore {
+    fn update_blocks(&mut self, blocks: &[Block<Self>]) {
+        for block in blocks {
+            self.state.absorb_block(block.as_ref());
+        }
+    }
+}
+
+/// Reader for XOF output
+#[derive(Clone, Debug)]
+pub struct AsconAXOFReaderCore {
+    hasher: HashCore<ParametersAXOF>,
+}
+
+impl BlockSizeUser for AsconAXOFReaderCore {
+    type BlockSize = U8;
+}
+
+impl XofReaderCore for AsconAXOFReaderCore {
+    fn read_block(&mut self) -> Block<Self> {
+        self.hasher.squeeze_block().into()
+    }
+}
+
+impl ExtendableOutputCore for AsconAXOFCore {
+    type ReaderCore = AsconAXOFReaderCore;
+
+    fn finalize_xof_core(&mut self, buffer: &mut Buffer<Self>) -> Self::ReaderCore {
+        debug_assert!(buffer.get_pos() < 8);
+        self.state
+            .absorb_last_block(&buffer.get_data()[..buffer.get_pos()]);
+        Self::ReaderCore {
+            hasher: self.state.clone(),
+        }
+    }
+}
+
+impl Reset for AsconAXOFCore {
+    fn reset(&mut self) {
+        *self = Default::default();
+    }
+}
+
+impl AlgorithmName for AsconAXOFCore {
+    fn write_alg_name(f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.write_str("AsconAXOF")
+    }
+}
+
 /// Ascon hash
 pub type AsconHash = CoreWrapper<AsconCore>;
 /// AsconA hash
 pub type AsconAHash = CoreWrapper<AsconACore>;
+/// AsconXOF
+pub type AsconXOF = CoreWrapper<AsconXOFCore>;
+/// Reader for AsconXOF output
+pub type AsconAXOFReader = XofReaderCoreWrapper<AsconAXOFReaderCore>;
+/// AsconAXOF
+pub type AsconAXOF = CoreWrapper<AsconAXOFCore>;
+/// Reader for AsconAXOF output
+pub type AsconXOFReader = XofReaderCoreWrapper<AsconAXOFReaderCore>;
