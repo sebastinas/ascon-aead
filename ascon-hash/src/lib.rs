@@ -16,10 +16,7 @@ use digest::{
 };
 
 /// Parameters for Ascon hash instances.
-///
-/// This trait is for internal use only, but needs to be exposed.
-// TODO: Hide this informaton from the public interface
-pub trait HashParameters {
+trait HashParameters {
     /// Number of rounds for the permutation.
     const ROUNDS: usize;
     /// Part of the IV.
@@ -37,10 +34,8 @@ pub trait HashParameters {
 }
 
 /// Parameters for AsconA hash.
-///
-/// This struct is for internal use only, but needs to be exposed.
 #[derive(Clone)]
-pub struct Parameters;
+struct Parameters;
 
 impl HashParameters for Parameters {
     const ROUNDS: usize = 12;
@@ -53,10 +48,8 @@ impl HashParameters for Parameters {
 }
 
 /// Parameters for AsconA hash.
-///
-/// This struct is for internal use only, but needs to be exposed.
 #[derive(Clone)]
-pub struct ParametersA;
+struct ParametersA;
 
 impl HashParameters for ParametersA {
     const ROUNDS: usize = 8;
@@ -75,13 +68,9 @@ struct HashCore<P: HashParameters> {
 }
 
 impl<P: HashParameters> HashCore<P> {
-    fn absorb_block(&mut self, block: &[u8]) {
-        debug_assert_eq!(block.len() % 8, 0);
-
-        for b in block.chunks_exact(8) {
-            self.state[0] ^= u64::from_be_bytes(b.try_into().unwrap());
-            self.permute_state();
-        }
+    fn absorb_block(&mut self, block: &[u8; 8]) {
+        self.state[0] ^= u64::from_be_bytes(*block);
+        self.permute_state();
     }
 
     fn absorb_last_block(&mut self, block: &[u8]) {
@@ -130,63 +119,34 @@ impl<P: HashParameters> Default for HashCore<P> {
 }
 
 /// Ascon hash implementation
-#[derive(Clone)]
-pub struct Hasher<P>
-where
-    P: HashParameters,
-{
-    state: HashCore<P>,
+#[derive(Clone, Default)]
+pub struct AsconCore {
+    state: HashCore<Parameters>,
 }
 
-impl<P> Default for Hasher<P>
-where
-    P: HashParameters,
-{
-    fn default() -> Self {
-        Self {
-            state: HashCore::default(),
-        }
-    }
-}
+impl HashMarker for AsconCore {}
 
-impl<P> HashMarker for Hasher<P> where P: HashParameters {}
-
-impl<P> BlockSizeUser for Hasher<P>
-where
-    P: HashParameters,
-{
+impl BlockSizeUser for AsconCore {
     type BlockSize = U8;
 }
 
-impl<P> BufferKindUser for Hasher<P>
-where
-    P: HashParameters,
-{
+impl BufferKindUser for AsconCore {
     type BufferKind = Eager;
 }
 
-impl<P> OutputSizeUser for Hasher<P>
-where
-    P: HashParameters,
-{
+impl OutputSizeUser for AsconCore {
     type OutputSize = U32;
 }
 
-impl<P> UpdateCore for Hasher<P>
-where
-    P: HashParameters,
-{
+impl UpdateCore for AsconCore {
     fn update_blocks(&mut self, blocks: &[digest::core_api::Block<Self>]) {
         for block in blocks {
-            self.state.absorb_block(block);
+            self.state.absorb_block(block.as_ref());
         }
     }
 }
 
-impl<P> FixedOutputCore for Hasher<P>
-where
-    P: HashParameters,
-{
+impl FixedOutputCore for AsconCore {
     fn finalize_fixed_core(
         &mut self,
         buffer: &mut digest::core_api::Buffer<Self>,
@@ -199,25 +159,72 @@ where
     }
 }
 
-impl<P> Reset for Hasher<P>
-where
-    P: HashParameters,
-{
+impl Reset for AsconCore {
     fn reset(&mut self) {
         *self = Default::default();
     }
 }
 
-impl<P> AlgorithmName for Hasher<P>
-where
-    P: HashParameters,
-{
+impl AlgorithmName for AsconCore {
     fn write_alg_name(f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        f.write_str(P::NAME)
+        f.write_str(Parameters::NAME)
+    }
+}
+
+/// Ascon hash implementation
+#[derive(Clone, Default)]
+pub struct AsconACore {
+    state: HashCore<ParametersA>,
+}
+
+impl HashMarker for AsconACore {}
+
+impl BlockSizeUser for AsconACore {
+    type BlockSize = U8;
+}
+
+impl BufferKindUser for AsconACore {
+    type BufferKind = Eager;
+}
+
+impl OutputSizeUser for AsconACore {
+    type OutputSize = U32;
+}
+
+impl UpdateCore for AsconACore {
+    fn update_blocks(&mut self, blocks: &[digest::core_api::Block<Self>]) {
+        for block in blocks {
+            self.state.absorb_block(block.as_ref());
+        }
+    }
+}
+
+impl FixedOutputCore for AsconACore {
+    fn finalize_fixed_core(
+        &mut self,
+        buffer: &mut digest::core_api::Buffer<Self>,
+        out: &mut digest::Output<Self>,
+    ) {
+        debug_assert!(buffer.get_pos() < 8);
+        self.state
+            .absorb_last_block(&buffer.get_data()[..buffer.get_pos()]);
+        self.state.squeeze(out);
+    }
+}
+
+impl Reset for AsconACore {
+    fn reset(&mut self) {
+        *self = Default::default();
+    }
+}
+
+impl AlgorithmName for AsconACore {
+    fn write_alg_name(f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.write_str(ParametersA::NAME)
     }
 }
 
 /// Ascon hash
-pub type AsconHash = CoreWrapper<Hasher<Parameters>>;
+pub type AsconHash = CoreWrapper<AsconCore>;
 /// AsconA hash
-pub type AsconAHash = CoreWrapper<Hasher<ParametersA>>;
+pub type AsconAHash = CoreWrapper<AsconACore>;
