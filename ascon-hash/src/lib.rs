@@ -55,7 +55,7 @@ trait HashParameters {
 }
 
 /// Parameters for AsconA hash.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 struct Parameters;
 
 impl HashParameters for Parameters {
@@ -68,7 +68,7 @@ impl HashParameters for Parameters {
 }
 
 /// Parameters for AsconA hash.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 struct ParametersA;
 
 impl HashParameters for ParametersA {
@@ -80,7 +80,7 @@ impl HashParameters for ParametersA {
     const IV4: u64 = 0xa13c42a223be8d87;
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 struct HashCore<P: HashParameters> {
     state: State,
     phantom: PhantomData<P>,
@@ -138,7 +138,7 @@ impl<P: HashParameters> Default for HashCore<P> {
 }
 
 /// Ascon hash implementation
-#[derive(Clone, Default)]
+#[derive(Clone, Debug, Default)]
 pub struct AsconCore {
     state: HashCore<Parameters>,
 }
@@ -187,7 +187,7 @@ impl AlgorithmName for AsconCore {
 }
 
 /// Ascon hash implementation
-#[derive(Clone, Default)]
+#[derive(Clone, Debug, Default)]
 pub struct AsconACore {
     state: HashCore<ParametersA>,
 }
