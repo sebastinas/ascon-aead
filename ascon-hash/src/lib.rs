@@ -10,9 +10,11 @@ pub use digest::{self, Digest};
 use digest::{
     block_buffer::Eager,
     consts::{U32, U8},
-    core_api::{AlgorithmName, BufferKindUser, CoreWrapper, FixedOutputCore, UpdateCore},
+    core_api::{
+        AlgorithmName, Block, Buffer, BufferKindUser, CoreWrapper, FixedOutputCore, UpdateCore,
+    },
     crypto_common::BlockSizeUser,
-    HashMarker, OutputSizeUser, Reset,
+    HashMarker, Output, OutputSizeUser, Reset,
 };
 
 /// Parameters for Ascon hash instances.
@@ -29,8 +31,6 @@ trait HashParameters {
     const IV3: u64;
     /// Part of the IV.
     const IV4: u64;
-    /// Name of the hash.
-    const NAME: &'static str;
 }
 
 /// Parameters for AsconA hash.
@@ -44,7 +44,6 @@ impl HashParameters for Parameters {
     const IV2: u64 = 0xb48a92db98d5da62;
     const IV3: u64 = 0x43189921b8f8e3e8;
     const IV4: u64 = 0x348fa5c9d525e140;
-    const NAME: &'static str = "AsconHash";
 }
 
 /// Parameters for AsconA hash.
@@ -58,7 +57,6 @@ impl HashParameters for ParametersA {
     const IV2: u64 = 0x2ec8e3296c76384c;
     const IV3: u64 = 0xd6f6a54d7f52377d;
     const IV4: u64 = 0xa13c42a223be8d87;
-    const NAME: &'static str = "AsconAHash";
 }
 
 #[derive(Clone)]
@@ -139,7 +137,7 @@ impl OutputSizeUser for AsconCore {
 }
 
 impl UpdateCore for AsconCore {
-    fn update_blocks(&mut self, blocks: &[digest::core_api::Block<Self>]) {
+    fn update_blocks(&mut self, blocks: &[Block<Self>]) {
         for block in blocks {
             self.state.absorb_block(block.as_ref());
         }
@@ -147,11 +145,7 @@ impl UpdateCore for AsconCore {
 }
 
 impl FixedOutputCore for AsconCore {
-    fn finalize_fixed_core(
-        &mut self,
-        buffer: &mut digest::core_api::Buffer<Self>,
-        out: &mut digest::Output<Self>,
-    ) {
+    fn finalize_fixed_core(&mut self, buffer: &mut Buffer<Self>, out: &mut Output<Self>) {
         debug_assert!(buffer.get_pos() < 8);
         self.state
             .absorb_last_block(&buffer.get_data()[..buffer.get_pos()]);
@@ -167,7 +161,7 @@ impl Reset for AsconCore {
 
 impl AlgorithmName for AsconCore {
     fn write_alg_name(f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        f.write_str(Parameters::NAME)
+        f.write_str("AsconHash")
     }
 }
 
@@ -192,7 +186,7 @@ impl OutputSizeUser for AsconACore {
 }
 
 impl UpdateCore for AsconACore {
-    fn update_blocks(&mut self, blocks: &[digest::core_api::Block<Self>]) {
+    fn update_blocks(&mut self, blocks: &[Block<Self>]) {
         for block in blocks {
             self.state.absorb_block(block.as_ref());
         }
@@ -200,11 +194,7 @@ impl UpdateCore for AsconACore {
 }
 
 impl FixedOutputCore for AsconACore {
-    fn finalize_fixed_core(
-        &mut self,
-        buffer: &mut digest::core_api::Buffer<Self>,
-        out: &mut digest::Output<Self>,
-    ) {
+    fn finalize_fixed_core(&mut self, buffer: &mut Buffer<Self>, out: &mut Output<Self>) {
         debug_assert!(buffer.get_pos() < 8);
         self.state
             .absorb_last_block(&buffer.get_data()[..buffer.get_pos()]);
@@ -220,7 +210,7 @@ impl Reset for AsconACore {
 
 impl AlgorithmName for AsconACore {
     fn write_alg_name(f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        f.write_str(ParametersA::NAME)
+        f.write_str("AsconAHash")
     }
 }
 
