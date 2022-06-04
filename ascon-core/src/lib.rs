@@ -217,7 +217,7 @@ impl AsRef<[u64]> for State {
 
 #[cfg(test)]
 mod tests {
-    use super::{clear, pad, State};
+    use super::{clear, pad, round, State};
 
     #[test]
     fn pad_0to7() {
@@ -240,6 +240,30 @@ mod tests {
         assert_eq!(clear(0x0123456789abcdef, 5), 0xabcdef);
         assert_eq!(clear(0x0123456789abcdef, 6), 0xcdef);
         assert_eq!(clear(0x0123456789abcdef, 7), 0xef);
+    }
+
+    #[test]
+    fn one_round() {
+        let state = round(
+            [
+                0x0123456789abcdef,
+                0x23456789abcdef01,
+                0x456789abcdef0123,
+                0x6789abcdef012345,
+                0x89abcde01234567f,
+            ],
+            0x1f,
+        );
+        assert_eq!(
+            state,
+            [
+                0x3c1748c9be2892ce,
+                0x5eafb305cd26164f,
+                0xf9470254bb3a4213,
+                0xf0428daf0c5d3948,
+                0x281375af0b294899
+            ]
+        );
     }
 
     #[test]
