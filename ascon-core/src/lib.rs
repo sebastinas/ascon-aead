@@ -32,6 +32,37 @@ pub struct State {
     x: [u64; 5],
 }
 
+/// Ascon's rounds function
+const fn round(x: [u64; 5], c: u64) -> [u64; 5] {
+    // S-box layer
+    let x0 = x[0] ^ x[4];
+    let x2 = x[2] ^ x[1] ^ c; // with round constant
+    let x4 = x[4] ^ x[3];
+
+    let tx0 = x0 ^ (!x[1] & x2);
+    let tx1 = x[1] ^ (!x2 & x[3]);
+    let tx2 = x2 ^ (!x[3] & x4);
+    let tx3 = x[3] ^ (!x4 & x0);
+    let tx4 = x4 ^ (!x0 & x[1]);
+    let tx1 = tx1 ^ tx0;
+    let tx3 = tx3 ^ tx2;
+    let tx0 = tx0 ^ tx4;
+
+    // linear layer
+    let x0 = tx0 ^ tx0.rotate_right(9);
+    let x1 = tx1 ^ tx1.rotate_right(22);
+    let x2 = tx2 ^ tx2.rotate_right(5);
+    let x3 = tx3 ^ tx3.rotate_right(7);
+    let x4 = tx4 ^ tx4.rotate_right(34);
+    [
+        tx0 ^ x0.rotate_right(19),
+        tx1 ^ x1.rotate_right(39),
+        !(tx2 ^ x2.rotate_right(1)),
+        tx3 ^ x3.rotate_right(10),
+        tx4 ^ x4.rotate_right(7),
+    ]
+}
+
 impl State {
     /// Instantiate new state from the given values.
     pub fn new(x0: u64, x1: u64, x2: u64, x3: u64, x4: u64) -> Self {
@@ -40,71 +71,64 @@ impl State {
         }
     }
 
-    /// Permute with a single round.
-    fn round(&mut self, c: u64) {
-        // S-box layer
-        let x0 = self.x[0] ^ self.x[4];
-        let x2 = self.x[2] ^ self.x[1] ^ c; // with round constant
-        let x4 = self.x[4] ^ self.x[3];
-
-        let tx0 = x0 ^ (!self.x[1] & x2);
-        let tx1 = self.x[1] ^ (!x2 & self.x[3]);
-        let tx2 = x2 ^ (!self.x[3] & x4);
-        let tx3 = self.x[3] ^ (!x4 & x0);
-        let tx4 = x4 ^ (!x0 & self.x[1]);
-        let tx1 = tx1 ^ tx0;
-        let tx3 = tx3 ^ tx2;
-        let tx0 = tx0 ^ tx4;
-
-        // linear layer
-        let x0 = tx0 ^ tx0.rotate_right(9);
-        let x1 = tx1 ^ tx1.rotate_right(22);
-        let x2 = tx2 ^ tx2.rotate_right(5);
-        let x3 = tx3 ^ tx3.rotate_right(7);
-        let x4 = tx4 ^ tx4.rotate_right(34);
-        self.x[0] = tx0 ^ x0.rotate_right(19);
-        self.x[1] = tx1 ^ x1.rotate_right(39);
-        self.x[2] = !(tx2 ^ x2.rotate_right(1));
-        self.x[3] = tx3 ^ x3.rotate_right(10);
-        self.x[4] = tx4 ^ x4.rotate_right(7);
-    }
-
     /// Perform permutation with 12 rounds.
     pub fn permute_12(&mut self) {
-        self.round(0xf0);
-        self.round(0xe1);
-        self.round(0xd2);
-        self.round(0xc3);
-        self.round(0xb4);
-        self.round(0xa5);
-        self.round(0x96);
-        self.round(0x87);
-        self.round(0x78);
-        self.round(0x69);
-        self.round(0x5a);
-        self.round(0x4b);
+        // We could in theory iter().fold() over an array of round constants,
+        // but the compiler produces better results when optimizing this chain
+        // of round function calls.
+        self.x = round(
+            round(
+                round(
+                    round(
+                        round(
+                            round(
+                                round(
+                                    round(
+                                        round(round(round(round(self.x, 0xf0), 0xe1), 0xd2), 0xc3),
+                                        0xb4,
+                                    ),
+                                    0xa5,
+                                ),
+                                0x96,
+                            ),
+                            0x87,
+                        ),
+                        0x78,
+                    ),
+                    0x69,
+                ),
+                0x5a,
+            ),
+            0x4b,
+        );
     }
 
     /// Perform permutation with 8 rounds.
     pub fn permute_8(&mut self) {
-        self.round(0xb4);
-        self.round(0xa5);
-        self.round(0x96);
-        self.round(0x87);
-        self.round(0x78);
-        self.round(0x69);
-        self.round(0x5a);
-        self.round(0x4b);
+        self.x = round(
+            round(
+                round(
+                    round(
+                        round(round(round(round(self.x, 0xb4), 0xa5), 0x96), 0x87),
+                        0x78,
+                    ),
+                    0x69,
+                ),
+                0x5a,
+            ),
+            0x4b,
+        );
     }
 
     /// Perform with 6 rounds.
     pub fn permute_6(&mut self) {
-        self.round(0x96);
-        self.round(0x87);
-        self.round(0x78);
-        self.round(0x69);
-        self.round(0x5a);
-        self.round(0x4b);
+        self.x = round(
+            round(
+                round(round(round(round(self.x, 0x96), 0x87), 0x78), 0x69),
+                0x5a,
+            ),
+            0x4b,
+        );
     }
 
     /// Convert state to bytes.
