@@ -26,7 +26,7 @@ pub const fn clear(word: u64, n: usize) -> u64 {
 
 /// The state of Ascon's permutation.
 ///
-/// The permutation operates on a state of 320 bits represneted as 5 64 bit words.
+/// The permutation operates on a state of 320 bits represented as 5 64 bit words.
 #[derive(Clone, Copy, Debug)]
 pub struct State {
     x: [u64; 5],
