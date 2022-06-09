@@ -120,7 +120,7 @@ impl State {
         );
     }
 
-    /// Perform with 6 rounds.
+    /// Perform permutation with 6 rounds.
     pub fn permute_6(&mut self) {
         self.x = round(
             round(
@@ -129,6 +129,11 @@ impl State {
             ),
             0x4b,
         );
+    }
+
+    /// Perform permutation with 1 round
+    pub fn permute_1(&mut self) {
+        self.x = round(self.x, 0x4b);
     }
 
     /// Convert state to bytes.
