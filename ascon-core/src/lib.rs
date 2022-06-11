@@ -24,6 +24,12 @@ pub const fn clear(word: u64, n: usize) -> u64 {
     word & (0x00ffffffffffffff >> (n * 8 - 8))
 }
 
+/// Compute round constant
+#[inline(always)]
+const fn round_constant(round: u64) -> u64 {
+    ((0xfu64 - round) << 4) | round
+}
+
 /// The state of Ascon's permutation.
 ///
 /// The permutation operates on a state of 320 bits represented as 5 64 bit words.
@@ -134,6 +140,18 @@ impl State {
     /// Perform permutation with 1 round
     pub fn permute_1(&mut self) {
         self.x = round(self.x, 0x4b);
+    }
+
+    /// Perform a given number (up to 12) of permutations
+    ///
+    /// Panics (in debug mode) if `rounds` is larger than 12.
+    pub fn permute_n(&mut self, rounds: usize) {
+        debug_assert!(rounds <= 12);
+
+        let start = 12 - rounds;
+        self.x = (start..12).into_iter().fold(self.x, |x, round_index| {
+            round(x, round_constant(round_index as u64))
+        });
     }
 
     /// Convert state to bytes.
@@ -320,6 +338,30 @@ mod tests {
         assert_eq!(state[2], 0x2fa599382c6db215);
         assert_eq!(state[3], 0x368133fae2f7667a);
         assert_eq!(state[4], 0x28cefb195a7c651c);
+    }
+
+    #[test]
+    fn state_permute_n() {
+        let mut state = State::new(
+            0x0123456789abcdef,
+            0xef0123456789abcd,
+            0xcdef0123456789ab,
+            0xabcdef0123456789,
+            0x89abcdef01234567,
+        );
+        let mut state2 = state;
+
+        state.permute_6();
+        state2.permute_n(6);
+        assert_eq!(state.x, state2.x);
+
+        state.permute_8();
+        state2.permute_n(8);
+        assert_eq!(state.x, state2.x);
+
+        state.permute_12();
+        state2.permute_n(12);
+        assert_eq!(state.x, state2.x);
     }
 
     #[test]
