@@ -1,5 +1,5 @@
 use ascon_core::State;
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
+use criterion::{criterion_group, criterion_main, Criterion};
 use rand::{rngs::StdRng, RngCore, SeedableRng};
 
 fn criterion_bench_permutation(c: &mut Criterion) {
@@ -13,24 +13,27 @@ fn criterion_bench_permutation(c: &mut Criterion) {
     );
 
     let mut c = c.benchmark_group("Permutation");
+    c.bench_function("1 round", |b| {
+        b.iter(|| {
+            state.permute_1();
+        })
+    });
+
     c.bench_function("6 rounds", |b| {
         b.iter(|| {
             state.permute_6();
-            black_box(state)
         })
     });
 
     c.bench_function("8 rounds", |b| {
         b.iter(|| {
             state.permute_8();
-            black_box(state)
         })
     });
 
     c.bench_function("12 rounds", |b| {
         b.iter(|| {
             state.permute_12();
-            black_box(state)
         })
     });
     c.finish();
