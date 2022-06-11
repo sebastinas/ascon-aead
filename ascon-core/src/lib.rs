@@ -240,7 +240,7 @@ impl AsRef<[u64]> for State {
 
 #[cfg(test)]
 mod tests {
-    use super::{clear, pad, round, State};
+    use super::{clear, pad, round, round_constant, State};
 
     #[test]
     fn pad_0to7() {
@@ -263,6 +263,22 @@ mod tests {
         assert_eq!(clear(0x0123456789abcdef, 5), 0xabcdef);
         assert_eq!(clear(0x0123456789abcdef, 6), 0xcdef);
         assert_eq!(clear(0x0123456789abcdef, 7), 0xef);
+    }
+
+    #[test]
+    fn round_constants() {
+        assert_eq!(round_constant(0), 0xf0);
+        assert_eq!(round_constant(1), 0xe1);
+        assert_eq!(round_constant(2), 0xd2);
+        assert_eq!(round_constant(3), 0xc3);
+        assert_eq!(round_constant(4), 0xb4);
+        assert_eq!(round_constant(5), 0xa5);
+        assert_eq!(round_constant(6), 0x96);
+        assert_eq!(round_constant(7), 0x87);
+        assert_eq!(round_constant(8), 0x78);
+        assert_eq!(round_constant(9), 0x69);
+        assert_eq!(round_constant(10), 0x5a);
+        assert_eq!(round_constant(11), 0x4b);
     }
 
     #[test]
