@@ -1,3 +1,6 @@
+// Copyright 2022 Sebastian Ramacher
+// SPDX-License-Identifier: MIT
+
 use ascon_hash::{AsconAHash, AsconHash, Digest};
 use criterion::{
     black_box, criterion_group, criterion_main, Bencher, BenchmarkId, Criterion, Throughput,

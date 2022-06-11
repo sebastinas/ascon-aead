@@ -1,3 +1,6 @@
+// Copyright 2022 Sebastian Ramacher
+// SPDX-License-Identifier: MIT
+
 use ascon_aead::{
     aead::{generic_array::typenum::Unsigned, Aead, AeadInPlace, NewAead},
     Ascon128, Ascon128a, Ascon80pq,

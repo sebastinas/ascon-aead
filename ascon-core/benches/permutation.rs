@@ -1,3 +1,6 @@
+// Copyright 2022 Sebastian Ramacher
+// SPDX-License-Identifier: MIT
+
 use ascon_core::State;
 use criterion::{criterion_group, criterion_main, Criterion};
 use rand::{rngs::StdRng, RngCore, SeedableRng};

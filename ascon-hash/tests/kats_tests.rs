@@ -1,3 +1,6 @@
+// Copyright 2022 Sebastian Ramacher
+// SPDX-License-Identifier: MIT
+
 use std::collections::HashMap;
 use std::include_str;
 
