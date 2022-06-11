@@ -1,7 +1,7 @@
 [package]
 name = "ascon-core"
 description = "Pure rust implementation of the Ascon permutation"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Sebastian Ramacher <sebastian.ramacher@ait.ac.at>"]
 license = "MIT"
 repository = "https://github.com/sebastinas/ascon-aead"
@@ -9,7 +9,7 @@ homepage = "https://github.com/sebastinas/ascon-aead"
 readme = "README.md"
 edition = "2021"
 rust-version = "1.56"
-keywords = ["Ascon"]
+keywords = ["Ascon", "permutation"]
 categories = ["cryptography", "no-std"]
 exclude = [".github/", ".gitignore"]
 
