@@ -77,6 +77,7 @@ impl State {
         }
     }
 
+    #[cfg(not(feature = "no_unroll"))]
     /// Perform permutation with 12 rounds.
     pub fn permute_12(&mut self) {
         // We could in theory iter().fold() over an array of round constants,
@@ -109,6 +110,17 @@ impl State {
         );
     }
 
+    #[cfg(feature = "no_unroll")]
+    /// Perform permutation with 12 rounds.
+    pub fn permute_12(&mut self) {
+        self.x = [
+            0xf0, 0xe1, 0xd2, 0xc3, 0xb4, 0xa5, 0x96, 0x87, 0x78, 0x69, 0x5a, 0x4b,
+        ]
+        .into_iter()
+        .fold(self.x, |x, rc| round(x, rc));
+    }
+
+    #[cfg(not(feature = "no_unroll"))]
     /// Perform permutation with 8 rounds.
     pub fn permute_8(&mut self) {
         self.x = round(
@@ -126,6 +138,15 @@ impl State {
         );
     }
 
+    #[cfg(feature = "no_unroll")]
+    /// Perform permutation with 8 rounds.
+    pub fn permute_8(&mut self) {
+        self.x = [0xb4, 0xa5, 0x96, 0x87, 0x78, 0x69, 0x5a, 0x4b]
+            .into_iter()
+            .fold(self.x, |x, rc| round(x, rc));
+    }
+
+    #[cfg(not(feature = "no_unroll"))]
     /// Perform permutation with 6 rounds.
     pub fn permute_6(&mut self) {
         self.x = round(
@@ -135,6 +156,14 @@ impl State {
             ),
             0x4b,
         );
+    }
+
+    #[cfg(feature = "no_unroll")]
+    /// Perform permutation with 6 rounds.
+    pub fn permute_6(&mut self) {
+        self.x = [0x96, 0x87, 0x78, 0x69, 0x5a, 0x4b]
+            .into_iter()
+            .fold(self.x, |x, rc| round(x, rc));
     }
 
     /// Perform permutation with 1 round

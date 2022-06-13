@@ -17,6 +17,9 @@ exclude = [".github/", ".gitignore"]
 criterion = "0.3"
 rand = { version = "0.8", default-features = false, features = ["std_rng"] }
 
+[features]
+no_unroll = [] # Do not unroll loops for binary size reduction
+
 [[bench]]
 name = "permutation"
 harness = false
