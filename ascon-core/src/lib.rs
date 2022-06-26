@@ -225,7 +225,7 @@ impl TryFrom<&[u64]> for State {
 
 impl From<&[u64; 5]> for State {
     fn from(value: &[u64; 5]) -> Self {
-        Self::new(value[0], value[1], value[2], value[3], value[4])
+        Self { x: *value }
     }
 }
 
@@ -237,27 +237,27 @@ impl TryFrom<&[u8]> for State {
             return Err(());
         }
 
-        let mut x = [0u64; 5];
+        let mut state = Self::default();
         for (src, dst) in value
             .chunks_exact(core::mem::size_of::<u64>())
-            .zip(x.iter_mut())
+            .zip(state.x.iter_mut())
         {
             *dst = u64::from_be_bytes(src.try_into().unwrap());
         }
-        Ok(Self { x })
+        Ok(state)
     }
 }
 
 impl From<&[u8; size_of::<u64>() * 5]> for State {
     fn from(value: &[u8; size_of::<u64>() * 5]) -> Self {
-        let mut x = [0u64; 5];
+        let mut state = Self::default();
         for (src, dst) in value
             .chunks_exact(core::mem::size_of::<u64>())
-            .zip(x.iter_mut())
+            .zip(state.x.iter_mut())
         {
             *dst = u64::from_be_bytes(src.try_into().unwrap());
         }
-        Self { x }
+        state
     }
 }
 
