@@ -33,7 +33,7 @@ const fn round_constant(round: u64) -> u64 {
 /// The state of Ascon's permutation.
 ///
 /// The permutation operates on a state of 320 bits represented as 5 64 bit words.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Default)]
 pub struct State {
     x: [u64; 5],
 }
