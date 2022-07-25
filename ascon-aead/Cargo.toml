@@ -14,7 +14,7 @@ categories = ["cryptography", "no-std"]
 exclude = [".github/", ".gitignore"]
 
 [dependencies]
-aead = { version = "0.4", default-features = false }
+aead = { version = "0.5", default-features = false }
 subtle = "2"
 zeroize = { version = "1.5", optional = true, default-features = false, features = [
     "derive",
@@ -23,7 +23,7 @@ ascon-core = { version = "0.1", path = "../ascon-core" }
 
 [dev-dependencies]
 hex = "0.4"
-aead = { version = "0.4", features = ["alloc"] }
+aead = { version = "0.5", features = ["alloc"] }
 spectral = "0.6"
 criterion = "0.3"
 rand = { version = "0.8", default-features = false, features = ["std_rng"] }
