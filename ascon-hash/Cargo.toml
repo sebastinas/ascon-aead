@@ -21,7 +21,10 @@ ascon-core = { version = "0.1.0", path = "../ascon-core" }
 hex = "0.4"
 spectral = "0.6"
 criterion = "0.3"
-rand = { version = "0.8", default-features = false, features = ["std_rng"] }
+rand = { version = "0.8", default-features = false, features = [
+    "std_rng",
+    "getrandom",
+] }
 
 [[bench]]
 name = "hash"

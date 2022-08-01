@@ -6,7 +6,7 @@ use criterion::{criterion_group, criterion_main, Criterion};
 use rand::{rngs::StdRng, RngCore, SeedableRng};
 
 fn criterion_bench_permutation(c: &mut Criterion) {
-    let mut rng = StdRng::seed_from_u64(0x0123456789abcdef);
+    let mut rng = StdRng::from_entropy();
     let mut state = State::new(
         rng.next_u64(),
         rng.next_u64(),

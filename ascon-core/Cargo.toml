@@ -15,7 +15,10 @@ exclude = [".github/", ".gitignore"]
 
 [dev-dependencies]
 criterion = "0.3"
-rand = { version = "0.8", default-features = false, features = ["std_rng"] }
+rand = { version = "0.8", default-features = false, features = [
+    "std_rng",
+    "getrandom",
+] }
 
 [features]
 no_unroll = [] # Do not unroll loops for binary size reduction
