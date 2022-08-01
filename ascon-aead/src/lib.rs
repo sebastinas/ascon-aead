@@ -67,8 +67,11 @@
 #![no_std]
 #![warn(missing_docs)]
 
-use aead::consts::{U0, U16, U20};
-pub use aead::{self, AeadCore, AeadInPlace, Error, Key, NewAead, Nonce, Tag};
+pub use aead::{self, AeadCore, AeadInPlace, Error, Key, KeyInit, Nonce, Tag};
+use aead::{
+    consts::{U0, U16, U20},
+    KeySizeUser,
+};
 
 mod asconcore;
 
@@ -83,9 +86,11 @@ struct Ascon<P: Parameters> {
     key: P::InternalKey,
 }
 
-impl<P: Parameters> NewAead for Ascon<P> {
+impl<P: Parameters> KeySizeUser for Ascon<P> {
     type KeySize = P::KeySize;
+}
 
+impl<P: Parameters> KeyInit for Ascon<P> {
     fn new(key: &Key<Self>) -> Self {
         Self {
             key: P::InternalKey::from(key),
@@ -145,9 +150,11 @@ pub type Ascon128Nonce = Nonce<Ascon128>;
 /// Tag for Ascon-128
 pub type Ascon128Tag = Tag<Ascon128>;
 
-impl NewAead for Ascon128 {
+impl KeySizeUser for Ascon128 {
     type KeySize = U16;
+}
 
+impl KeyInit for Ascon128 {
     fn new(key: &Key<Self>) -> Self {
         Self(Ascon::<Parameters128>::new(key))
     }
@@ -194,9 +201,11 @@ pub type Ascon128aNonce = Nonce<Ascon128a>;
 /// Tag for Ascon-128a
 pub type Ascon128aTag = Tag<Ascon128a>;
 
-impl NewAead for Ascon128a {
+impl KeySizeUser for Ascon128a {
     type KeySize = U16;
+}
 
+impl KeyInit for Ascon128a {
     fn new(key: &Key<Self>) -> Self {
         Self(Ascon::<Parameters128a>::new(key))
     }
@@ -242,9 +251,11 @@ pub type Ascon80pqNonce = Nonce<Ascon80pq>;
 /// Tag for Ascon-80pq
 pub type Ascon80pqTag = Tag<Ascon80pq>;
 
-impl NewAead for Ascon80pq {
+impl KeySizeUser for Ascon80pq {
     type KeySize = U20;
+}
 
+impl KeyInit for Ascon80pq {
     fn new(key: &Key<Self>) -> Self {
         Self(Ascon::<Parameters80pq>::new(key))
     }

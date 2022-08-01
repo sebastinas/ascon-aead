@@ -3,7 +3,7 @@
 
 use ascon_aead::{
     aead::{Aead, Payload},
-    AeadInPlace, Ascon128, Ascon128a, Ascon80pq, Key, NewAead, Nonce,
+    AeadInPlace, Ascon128, Ascon128a, Ascon80pq, Key, KeyInit, Nonce,
 };
 use spectral::prelude::{asserting, OrderedAssertions, ResultAssertions};
 use std::collections::HashMap;
@@ -39,7 +39,7 @@ impl TestVector {
     }
 }
 
-fn run_tv<A: NewAead + AeadInPlace>(tv: TestVector) {
+fn run_tv<A: KeyInit + AeadInPlace>(tv: TestVector) {
     let core = A::new(Key::<A>::from_slice(&tv.key));
     asserting(format!("Test Vector {} encryption", tv.count).as_str())
         .that(&core.encrypt(
