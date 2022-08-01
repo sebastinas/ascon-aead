@@ -13,7 +13,7 @@
 //!
 //! ```
 //! use ascon_aead::{Ascon128, Key, Nonce}; // Or `Ascon128a`
-//! use ascon_aead::aead::{Aead, NewAead};
+//! use ascon_aead::aead::{Aead, KeyInit};
 //!
 //! let key = Key::<Ascon128>::from_slice(b"very secret key.");
 //! let cipher = Ascon128::new(key);
@@ -38,7 +38,7 @@
 //! ```
 //! # #[cfg(feature = "heapless")] {
 //! use ascon_aead::{Ascon128, Key, Nonce}; // Or `Ascon128a`
-//! use ascon_aead::aead::{AeadInPlace, NewAead};
+//! use ascon_aead::aead::{AeadInPlace, KeyInit};
 //! use ascon_aead::aead::heapless::Vec;
 //!
 //! let key = Key::<Ascon128>::from_slice(b"very secret key.");
