@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.4 (2022-08-01)
+
+* Port to aead 0.5.
+
 ## 0.3 (2022-06-03)
 
 * Remove implementation of the Ascon permutation
