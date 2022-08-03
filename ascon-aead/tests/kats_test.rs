@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: MIT
 
 use ascon_aead::{
-    aead::{Aead, Payload},
-    AeadInPlace, Ascon128, Ascon128a, Ascon80pq, Key, KeyInit, Nonce,
+    aead::{Aead, AeadInPlace, KeyInit, Payload},
+    Ascon128, Ascon128a, Ascon80pq, Key, Nonce,
 };
 use spectral::prelude::{asserting, OrderedAssertions, ResultAssertions};
 use std::collections::HashMap;

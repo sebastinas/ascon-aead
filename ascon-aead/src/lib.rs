@@ -67,10 +67,10 @@
 #![no_std]
 #![warn(missing_docs)]
 
-pub use aead::{self, AeadCore, AeadInPlace, Error, Key, KeyInit, Nonce, Tag};
+pub use aead::{self, Error, Key, Nonce, Tag};
 use aead::{
     consts::{U0, U16, U20},
-    KeySizeUser,
+    AeadCore, AeadInPlace, KeyInit, KeySizeUser,
 };
 
 mod asconcore;
