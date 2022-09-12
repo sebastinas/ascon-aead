@@ -25,7 +25,7 @@ ascon-core = { version = "0.1", path = "../ascon-core" }
 hex = "0.4"
 aead = { version = "0.5", features = ["alloc"] }
 spectral = "0.6"
-criterion = "0.3"
+criterion = "0.4"
 rand = { version = "0.8", default-features = false, features = [
     "std_rng",
     "getrandom",

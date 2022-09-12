@@ -20,7 +20,7 @@ ascon-core = { version = "0.1.0", path = "../ascon-core" }
 [dev-dependencies]
 hex = "0.4"
 spectral = "0.6"
-criterion = "0.3"
+criterion = "0.4"
 rand = { version = "0.8", default-features = false, features = [
     "std_rng",
     "getrandom",
