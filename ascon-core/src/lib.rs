@@ -117,7 +117,7 @@ impl State {
             0xf0, 0xe1, 0xd2, 0xc3, 0xb4, 0xa5, 0x96, 0x87, 0x78, 0x69, 0x5a, 0x4b,
         ]
         .into_iter()
-        .fold(self.x, |x, rc| round(x, rc));
+        .fold(self.x, round);
     }
 
     #[cfg(not(feature = "no_unroll"))]
@@ -143,7 +143,7 @@ impl State {
     pub fn permute_8(&mut self) {
         self.x = [0xb4, 0xa5, 0x96, 0x87, 0x78, 0x69, 0x5a, 0x4b]
             .into_iter()
-            .fold(self.x, |x, rc| round(x, rc));
+            .fold(self.x, round);
     }
 
     #[cfg(not(feature = "no_unroll"))]
@@ -163,7 +163,7 @@ impl State {
     pub fn permute_6(&mut self) {
         self.x = [0x96, 0x87, 0x78, 0x69, 0x5a, 0x4b]
             .into_iter()
-            .fold(self.x, |x, rc| round(x, rc));
+            .fold(self.x, round);
     }
 
     /// Perform permutation with 1 round
