@@ -178,7 +178,7 @@ impl State {
         debug_assert!(rounds <= 12);
 
         let start = 12 - rounds;
-        self.x = (start..12).into_iter().fold(self.x, |x, round_index| {
+        self.x = (start..12).fold(self.x, |x, round_index| {
             round(x, round_constant(round_index as u64))
         });
     }
