@@ -23,7 +23,7 @@ const fn keyrot(lo2hi: u64, hi2lo: u64) -> u64 {
 /// Helper trait for handling differences in key usage of Ascon-128* and Ascon-80*
 ///
 /// For internal use-only.
-pub trait InternalKey<KS: ArrayLength<u8>>:
+pub(crate) trait InternalKey<KS: ArrayLength<u8>>:
     Sized + Clone + for<'a> From<&'a GenericArray<u8, KS>>
 {
     /// Return K0.
@@ -36,7 +36,7 @@ pub trait InternalKey<KS: ArrayLength<u8>>:
 
 #[derive(Clone)]
 #[cfg_attr(feature = "zeroize", derive(zeroize::Zeroize, zeroize::ZeroizeOnDrop))]
-pub struct InternalKey16(u64, u64);
+pub(crate) struct InternalKey16(u64, u64);
 
 impl InternalKey<U16> for InternalKey16 {
     #[inline(always)]
@@ -67,7 +67,7 @@ impl From<&GenericArray<u8, U16>> for InternalKey16 {
 
 #[derive(Clone)]
 #[cfg_attr(feature = "zeroize", derive(zeroize::Zeroize, zeroize::ZeroizeOnDrop))]
-pub struct InternalKey20(u64, u64, u32);
+pub(crate) struct InternalKey20(u64, u64, u32);
 
 impl InternalKey<U20> for InternalKey20 {
     #[inline(always)]
@@ -98,7 +98,7 @@ impl From<&GenericArray<u8, U20>> for InternalKey20 {
 }
 
 /// Parameters of an Ascon instance
-pub trait Parameters {
+pub(crate) trait Parameters {
     /// Size of the secret key
     ///
     /// For internal use-only.
@@ -119,7 +119,8 @@ pub trait Parameters {
 }
 
 /// Parameters for Ascon-128
-pub struct Parameters128;
+pub(crate) struct Parameters128;
+
 impl Parameters for Parameters128 {
     type KeySize = U16;
     type InternalKey = InternalKey16;
@@ -130,7 +131,7 @@ impl Parameters for Parameters128 {
 }
 
 /// Parameters for Ascon-128a
-pub struct Parameters128a;
+pub(crate) struct Parameters128a;
 
 impl Parameters for Parameters128a {
     type KeySize = U16;
@@ -142,7 +143,7 @@ impl Parameters for Parameters128a {
 }
 
 /// Parameters for Ascon-80pq
-pub struct Parameters80pq;
+pub(crate) struct Parameters80pq;
 
 impl Parameters for Parameters80pq {
     type KeySize = U20;
