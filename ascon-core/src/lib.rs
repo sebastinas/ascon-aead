@@ -18,12 +18,6 @@ pub const fn pad(n: usize) -> u64 {
     0x80_u64 << (56 - 8 * n)
 }
 
-/// Clear bytes from a 64 bit word.
-#[inline(always)]
-pub const fn clear(word: u64, n: usize) -> u64 {
-    word & (0x00ffffffffffffff >> (n * 8 - 8))
-}
-
 /// Compute round constant
 #[inline(always)]
 const fn round_constant(round: u64) -> u64 {
@@ -269,7 +263,7 @@ impl AsRef<[u64]> for State {
 
 #[cfg(test)]
 mod tests {
-    use super::{clear, pad, round, round_constant, State};
+    use super::{pad, round, round_constant, State};
 
     #[test]
     fn pad_0to7() {
@@ -281,17 +275,6 @@ mod tests {
         assert_eq!(pad(5), 0x800000);
         assert_eq!(pad(6), 0x8000);
         assert_eq!(pad(7), 0x80);
-    }
-
-    #[test]
-    fn clear_0to7() {
-        assert_eq!(clear(0x0123456789abcdef, 1), 0x23456789abcdef);
-        assert_eq!(clear(0x0123456789abcdef, 2), 0x456789abcdef);
-        assert_eq!(clear(0x0123456789abcdef, 3), 0x6789abcdef);
-        assert_eq!(clear(0x0123456789abcdef, 4), 0x89abcdef);
-        assert_eq!(clear(0x0123456789abcdef, 5), 0xabcdef);
-        assert_eq!(clear(0x0123456789abcdef, 6), 0xcdef);
-        assert_eq!(clear(0x0123456789abcdef, 7), 0xef);
     }
 
     #[test]

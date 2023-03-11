@@ -6,8 +6,14 @@ use aead::{
     generic_array::{typenum::Unsigned, ArrayLength, GenericArray},
     Error,
 };
-use ascon_core::{clear, pad, State};
+use ascon_core::{pad, State};
 use subtle::ConstantTimeEq;
+
+/// Clear bytes from a 64 bit word.
+#[inline(always)]
+const fn clear(word: u64, n: usize) -> u64 {
+    word & (0x00ffffffffffffff >> (n * 8 - 8))
+}
 
 #[inline(always)]
 const fn keyrot(lo2hi: u64, hi2lo: u64) -> u64 {
@@ -346,5 +352,21 @@ impl<'a, P: Parameters> AEADCore<'a, P> {
         } else {
             Err(Error)
         }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn clear_0to7() {
+        assert_eq!(clear(0x0123456789abcdef, 1), 0x23456789abcdef);
+        assert_eq!(clear(0x0123456789abcdef, 2), 0x456789abcdef);
+        assert_eq!(clear(0x0123456789abcdef, 3), 0x6789abcdef);
+        assert_eq!(clear(0x0123456789abcdef, 4), 0x89abcdef);
+        assert_eq!(clear(0x0123456789abcdef, 5), 0xabcdef);
+        assert_eq!(clear(0x0123456789abcdef, 6), 0xcdef);
+        assert_eq!(clear(0x0123456789abcdef, 7), 0xef);
     }
 }
