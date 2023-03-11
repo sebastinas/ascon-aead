@@ -114,8 +114,6 @@ pub(crate) trait Parameters {
     ///
     /// For internal use-only
     const IV: u64;
-    /// Maximum blocks to be processed per key
-    const B_MAX: u64;
 }
 
 /// Parameters for Ascon-128
@@ -127,7 +125,6 @@ impl Parameters for Parameters128 {
 
     const COUNT: usize = 8;
     const IV: u64 = 0x80400c0600000000;
-    const B_MAX: u64 = u64::MAX; // 2^64;
 }
 
 /// Parameters for Ascon-128a
@@ -139,7 +136,6 @@ impl Parameters for Parameters128a {
 
     const COUNT: usize = 16;
     const IV: u64 = 0x80800c0800000000;
-    const B_MAX: u64 = u64::MAX; // 2^64;
 }
 
 /// Parameters for Ascon-80pq
@@ -151,7 +147,6 @@ impl Parameters for Parameters80pq {
 
     const COUNT: usize = 8;
     const IV: u64 = 0xa0400c0600000000;
-    const B_MAX: u64 = u64::MAX;
 }
 
 /// Core implementation of Ascon for one encryption/decryption operation
