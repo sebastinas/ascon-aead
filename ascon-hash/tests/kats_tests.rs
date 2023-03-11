@@ -38,7 +38,7 @@ fn run_tv<H: Digest + Reset + Clone>(tv: TestVector) {
 
     digest::Digest::reset(&mut hasher2);
     for b in tv.message {
-        hasher2.update(&[b]);
+        hasher2.update([b]);
     }
     let digest2 = hasher2.finalize();
     asserting(format!("Test Vector {}: After reset", tv.count).as_str())
