@@ -13,6 +13,9 @@ keywords = ["Ascon", "permutation"]
 categories = ["cryptography", "no-std"]
 exclude = [".github/", ".gitignore"]
 
+[dependencies]
+ascon = "0.3"
+
 [dev-dependencies]
 criterion = "0.4"
 rand = { version = "0.8", default-features = false, features = [
@@ -21,7 +24,7 @@ rand = { version = "0.8", default-features = false, features = [
 ] }
 
 [features]
-no_unroll = [] # Do not unroll loops for binary size reduction
+no_unroll = ["ascon/no_unroll"] # Do not unroll loops for binary size reduction
 
 [[bench]]
 name = "permutation"

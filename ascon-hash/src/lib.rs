@@ -41,7 +41,7 @@
 
 use core::marker::PhantomData;
 
-use ascon_core::{pad, State};
+use ascon::{pad, State};
 pub use digest::{self, Digest, ExtendableOutput, Reset, Update, XofReader};
 use digest::{
     block_buffer::Eager,

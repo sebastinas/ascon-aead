@@ -15,7 +15,7 @@ exclude = [".github/", ".gitignore"]
 
 [dependencies]
 digest = { version = "0.10", default-features = false, features = ["core-api"] }
-ascon-core = { version = "0.1.0", path = "../ascon-core" }
+ascon = "0.3"
 
 [dev-dependencies]
 hex = "0.4"
