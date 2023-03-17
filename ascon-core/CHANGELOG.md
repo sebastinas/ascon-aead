@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.3 (2023-03-17)
+
+* Deprecate this crate in favor of `ascon`.
+
 ## 0.1.2 (2022-06-26)
 
 * Implement `Default` for `State`.
