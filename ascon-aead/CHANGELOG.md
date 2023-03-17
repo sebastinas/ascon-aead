@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.4.1 (2023-03-17)
+
+* Replace `ascon-core` with `ascon`.
+* Bump MSRV to 1.60.
+
 ## 0.4 (2022-08-01)
 
 * Port to aead 0.5.
