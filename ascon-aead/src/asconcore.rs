@@ -20,6 +20,23 @@ const fn keyrot(lo2hi: u64, hi2lo: u64) -> u64 {
     lo2hi << 32 | hi2lo >> 32
 }
 
+#[inline(always)]
+fn u64_from_be_bytes(input: &[u8]) -> u64 {
+    u64::from_be_bytes(input.try_into().unwrap())
+}
+
+#[inline(always)]
+fn u64_from_be_bytes_partial(input: &[u8]) -> u64 {
+    let mut tmp = [0u8; 8];
+    tmp[0..input.len()].copy_from_slice(input);
+    u64::from_be_bytes(tmp)
+}
+
+#[inline(always)]
+fn u32_from_be_bytes(input: &[u8]) -> u32 {
+    u32::from_be_bytes(input.try_into().unwrap())
+}
+
 /// Helper trait for handling differences in key usage of Ascon-128* and Ascon-80*
 ///
 /// For internal use-only.
@@ -57,11 +74,7 @@ impl InternalKey<U16> for InternalKey16 {
 
 impl From<&GenericArray<u8, U16>> for InternalKey16 {
     fn from(key: &GenericArray<u8, U16>) -> Self {
-        // the array is exactly 16 bytes long, hence the following .try_into().unwrap() never fail
-        Self(
-            u64::from_be_bytes(key[..8].try_into().unwrap()),
-            u64::from_be_bytes(key[8..].try_into().unwrap()),
-        )
+        Self(u64_from_be_bytes(&key[..8]), u64_from_be_bytes(&key[8..]))
     }
 }
 
@@ -88,11 +101,10 @@ impl InternalKey<U20> for InternalKey20 {
 
 impl From<&GenericArray<u8, U20>> for InternalKey20 {
     fn from(key: &GenericArray<u8, U20>) -> Self {
-        // the array is exactly 20 bytes long, hence the following .try_into().unwrap() never fail
         Self(
-            u64::from_be_bytes(key[4..12].try_into().unwrap()),
-            u64::from_be_bytes(key[12..].try_into().unwrap()),
-            u32::from_be_bytes(key[..4].try_into().unwrap()),
+            u64_from_be_bytes(&key[4..12]),
+            u64_from_be_bytes(&key[12..]),
+            u32_from_be_bytes(&key[..4]),
         )
     }
 }
@@ -165,8 +177,8 @@ impl<'a, P: Parameters> AEADCore<'a, P> {
             },
             internal_key.get_k1(),
             internal_key.get_k2(),
-            u64::from_be_bytes(nonce[..8].try_into().unwrap()),
-            u64::from_be_bytes(nonce[8..].try_into().unwrap()),
+            u64_from_be_bytes(&nonce[..8]),
+            u64_from_be_bytes(&nonce[8..]),
         );
 
         state.permute_12();
@@ -206,9 +218,9 @@ impl<'a, P: Parameters> AEADCore<'a, P> {
 
             while associated_data.len() >= P::COUNT {
                 // process full block of associated data
-                self.state[0] ^= u64::from_be_bytes(associated_data[..8].try_into().unwrap());
+                self.state[0] ^= u64_from_be_bytes(&associated_data[..8]);
                 if P::COUNT == 16 {
-                    self.state[1] ^= u64::from_be_bytes(associated_data[8..16].try_into().unwrap());
+                    self.state[1] ^= u64_from_be_bytes(&associated_data[8..16]);
                 }
                 self.permute_state();
                 associated_data = &associated_data[P::COUNT..];
@@ -216,7 +228,7 @@ impl<'a, P: Parameters> AEADCore<'a, P> {
 
             // process partial block if it exists
             let sidx = if P::COUNT == 16 && associated_data.len() >= 8 {
-                self.state[0] ^= u64::from_be_bytes(associated_data[..8].try_into().unwrap());
+                self.state[0] ^= u64_from_be_bytes(&associated_data[..8]);
                 associated_data = &associated_data[8..];
                 1
             } else {
@@ -224,9 +236,7 @@ impl<'a, P: Parameters> AEADCore<'a, P> {
             };
             self.state[sidx] ^= pad(associated_data.len());
             if !associated_data.is_empty() {
-                let mut tmp = [0u8; 8];
-                tmp[0..associated_data.len()].copy_from_slice(associated_data);
-                self.state[sidx] ^= u64::from_be_bytes(tmp);
+                self.state[sidx] ^= u64_from_be_bytes_partial(associated_data);
             }
             self.permute_state();
         }
@@ -238,10 +248,10 @@ impl<'a, P: Parameters> AEADCore<'a, P> {
     fn process_encrypt_inplace(&mut self, mut message: &mut [u8]) {
         while message.len() >= P::COUNT {
             // process full block of message
-            self.state[0] ^= u64::from_be_bytes(message[..8].try_into().unwrap());
+            self.state[0] ^= u64_from_be_bytes(&message[..8]);
             message[..8].copy_from_slice(&u64::to_be_bytes(self.state[0]));
             if P::COUNT == 16 {
-                self.state[1] ^= u64::from_be_bytes(message[8..16].try_into().unwrap());
+                self.state[1] ^= u64_from_be_bytes(&message[8..16]);
                 message[8..16].copy_from_slice(&u64::to_be_bytes(self.state[1]));
             }
             self.permute_state();
@@ -250,7 +260,7 @@ impl<'a, P: Parameters> AEADCore<'a, P> {
 
         // process partial block if it exists
         let sidx = if P::COUNT == 16 && message.len() >= 8 {
-            self.state[0] ^= u64::from_be_bytes(message[..8].try_into().unwrap());
+            self.state[0] ^= u64_from_be_bytes(&message[..8]);
             message[..8].copy_from_slice(&u64::to_be_bytes(self.state[0]));
             message = &mut message[8..];
             1
@@ -259,9 +269,7 @@ impl<'a, P: Parameters> AEADCore<'a, P> {
         };
         self.state[sidx] ^= pad(message.len());
         if !message.is_empty() {
-            let mut tmp = [0u8; 8];
-            tmp[0..message.len()].copy_from_slice(message);
-            self.state[sidx] ^= u64::from_be_bytes(tmp);
+            self.state[sidx] ^= u64_from_be_bytes_partial(message);
             message.copy_from_slice(&u64::to_be_bytes(self.state[sidx])[0..message.len()]);
         }
     }
@@ -269,11 +277,11 @@ impl<'a, P: Parameters> AEADCore<'a, P> {
     fn process_decrypt_inplace(&mut self, mut ciphertext: &mut [u8]) {
         while ciphertext.len() >= P::COUNT {
             // process full block of ciphertext
-            let cx = u64::from_be_bytes(ciphertext[..8].try_into().unwrap());
+            let cx = u64_from_be_bytes(&ciphertext[..8]);
             ciphertext[..8].copy_from_slice(&u64::to_be_bytes(self.state[0] ^ cx));
             self.state[0] = cx;
             if P::COUNT == 16 {
-                let cx = u64::from_be_bytes(ciphertext[8..16].try_into().unwrap());
+                let cx = u64_from_be_bytes(&ciphertext[8..16]);
                 ciphertext[8..16].copy_from_slice(&u64::to_be_bytes(self.state[1] ^ cx));
                 self.state[1] = cx;
             }
@@ -283,7 +291,7 @@ impl<'a, P: Parameters> AEADCore<'a, P> {
 
         // process partial block if it exists
         let sidx = if P::COUNT == 16 && ciphertext.len() >= 8 {
-            let cx = u64::from_be_bytes(ciphertext[..8].try_into().unwrap());
+            let cx = u64_from_be_bytes(&ciphertext[..8]);
             ciphertext[..8].copy_from_slice(&u64::to_be_bytes(self.state[0] ^ cx));
             self.state[0] = cx;
             ciphertext = &mut ciphertext[8..];
@@ -293,9 +301,7 @@ impl<'a, P: Parameters> AEADCore<'a, P> {
         };
         self.state[sidx] ^= pad(ciphertext.len());
         if !ciphertext.is_empty() {
-            let mut tmp = [0u8; 8];
-            tmp[0..ciphertext.len()].copy_from_slice(ciphertext);
-            let cx = u64::from_be_bytes(tmp);
+            let cx = u64_from_be_bytes_partial(ciphertext);
             self.state[sidx] ^= cx;
             ciphertext.copy_from_slice(&u64::to_be_bytes(self.state[sidx])[0..ciphertext.len()]);
             self.state[sidx] = clear(self.state[sidx], ciphertext.len()) ^ cx;
