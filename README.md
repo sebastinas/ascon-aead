@@ -1,3 +1,5 @@
 # Ascon
 
-This repository serves as the source for various Rust crates implementing Ascon as authenticated encryption scheme and cryptographic hash function. For more information on Ascon, check its [website](https://ascon.iaik.tugraz.at/).
+This repository is deprecated. For the AEAD implementation check RustCrypto's
+[AEADs](https://github.com/RustCrypto/AEADs/) repository and for the hash see
+[hashes](https://github.com/RustCrypto/hashes/).

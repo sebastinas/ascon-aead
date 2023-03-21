@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.4 (2023-03-21)
+
+* Add more deprecation notes.
+* Remove benchmarks
+
 ## 0.1.3 (2023-03-17)
 
 * Deprecate this crate in favor of `ascon`.

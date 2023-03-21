@@ -1,11 +1,9 @@
 // Copyright 2021-2022 Sebastian Ramacher
 // SPDX-License-Identifier: MIT
 
-//! # Ascon permutation
+//! # DEPRECATED: Ascon permutation
 //!
-//! This crate provides an implementation of the Ascon permutation optimized for 64
-//! bit systems. Unless you specfically need this crate, you are most likely
-//! looking for the `ascon-aead` crate.
+//! Use the `ascon` crate instead.
 
 #![no_std]
 
