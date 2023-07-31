@@ -14,7 +14,7 @@ categories = ["cryptography", "no-std"]
 exclude = [".github/", ".gitignore"]
 
 [dependencies]
-ascon = "0.3"
+ascon = "0.4"
 
 [features]
 no_unroll = ["ascon/no_unroll"] # Do not unroll loops for binary size reduction
