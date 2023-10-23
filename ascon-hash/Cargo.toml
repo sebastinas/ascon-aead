@@ -14,7 +14,7 @@ rust-version = "1.60"
 
 [dependencies]
 digest = { version = "0.10", default-features = false, features = ["core-api"] }
-ascon-core = { version = "0.4", path = "../ascon-core" }
+ascon-core = { version = "0.4", path = "../ascon-core", default-features = false }
 
 [dev-dependencies]
 spectral = { version = "0.6", default-features = false }
@@ -23,6 +23,7 @@ hex = "0.4"
 [features]
 default = ["std"]
 std = ["digest/std"]
+zeroize = ["ascon-core/zeroize"]
 
 [package.metadata.docs.rs]
 all-features = true
