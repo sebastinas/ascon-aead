@@ -440,7 +440,7 @@ pub type AsconAHash = CoreWrapper<AsconACore>;
 /// ```
 pub type AsconXof = CoreWrapper<AsconXofCore>;
 /// Reader for AsconXof output
-pub type AsconAXofReader = XofReaderCoreWrapper<AsconAXofReaderCore>;
+pub type AsconXofReader = XofReaderCoreWrapper<AsconXofReaderCore>;
 /// AsconAXof
 ///
 /// ```
@@ -455,4 +455,4 @@ pub type AsconAXofReader = XofReaderCoreWrapper<AsconAXofReaderCore>;
 /// ```
 pub type AsconAXof = CoreWrapper<AsconAXofCore>;
 /// Reader for AsconAXof output
-pub type AsconXofReader = XofReaderCoreWrapper<AsconAXofReaderCore>;
+pub type AsconAXofReader = XofReaderCoreWrapper<AsconAXofReaderCore>;
