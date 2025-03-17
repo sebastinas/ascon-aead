@@ -11,13 +11,13 @@
 //! Simple usage (allocating, no associated data):
 //!
 //! ```
-//! use ascon_aead::{Ascon128, Key, Nonce}; // Or `Ascon128a`
+//! use ascon_aead::{AsconAead128, Key, Nonce};
 //! use ascon_aead::aead::{Aead, KeyInit};
 //!
-//! let key = Key::<Ascon128>::from_slice(b"very secret key.");
-//! let cipher = Ascon128::new(key);
+//! let key = Key::<AsconAead128>::from_slice(b"very secret key.");
+//! let cipher = AsconAead128::new(key);
 //!
-//! let nonce = Nonce::<Ascon128>::from_slice(b"unique nonce 012"); // 128-bits; unique per message
+//! let nonce = Nonce::<AsconAead128>::from_slice(b"unique nonce 012"); // 128-bits; unique per message
 //!
 //! let ciphertext = cipher.encrypt(nonce, b"plaintext message".as_ref())
 //!     .expect("encryption failure!"); // NOTE: handle this error to avoid panics!
@@ -32,13 +32,13 @@
 //!
 //! ```
 //! # #[cfg(feature = "getrandom")] {
-//! use ascon_aead::Ascon128; // Or `Ascon128a`
+//! use ascon_aead::AsconAead128;
 //! use ascon_aead::aead::{Aead, AeadCore, KeyInit, OsRng};
 //!
-//! let key = Ascon128::generate_key(&mut OsRng);
-//! let cipher = Ascon128::new(&key);
+//! let key = AsconAead128::generate_key(&mut OsRng);
+//! let cipher = AsconAead128::new(&key);
 //!
-//! let nonce = Ascon128::generate_nonce(&mut OsRng); // 128 bits; unique per message
+//! let nonce = AsconAead128::generate_nonce(&mut OsRng); // 128 bits; unique per message
 //!
 //! let ciphertext = cipher.encrypt(&nonce, b"plaintext message".as_ref())
 //!     .expect("encryption failure!"); // NOTE: handle this error to avoid panics!
@@ -67,14 +67,14 @@
 //!
 //! ```
 //! # #[cfg(feature = "heapless")] {
-//! use ascon_aead::{Ascon128, Key, Nonce}; // Or `Ascon128a`
+//! use ascon_aead::{AsconAead128, Key, Nonce};
 //! use ascon_aead::aead::{AeadInPlace, KeyInit};
 //! use ascon_aead::aead::heapless::Vec;
 //!
-//! let key = Key::<Ascon128>::from_slice(b"very secret key.");
-//! let cipher = Ascon128::new(key);
+//! let key = Key::<AsconAead128>::from_slice(b"very secret key.");
+//! let cipher = AsconAead128::new(key);
 //!
-//! let nonce = Nonce::<Ascon128>::from_slice(b"unique nonce 012"); // 128-bits; unique per message
+//! let nonce = Nonce::<AsconAead128>::from_slice(b"unique nonce 012"); // 128-bits; unique per message
 //!
 //! let mut buffer: Vec<u8, 128> = Vec::new(); // Buffer needs 16-bytes overhead for authentication tag
 //! buffer.extend_from_slice(b"plaintext message");
@@ -99,18 +99,18 @@
 
 pub use aead::{self, Error, Key, Nonce, Tag};
 use aead::{
-    consts::{U0, U16, U20},
     AeadCore, AeadInPlace, KeyInit, KeySizeUser,
+    consts::{U0, U16},
 };
 
 mod asconcore;
 
-use asconcore::{AsconCore, Parameters, Parameters128, Parameters128a, Parameters80pq};
+use asconcore::{AsconCore, Parameters, Parameters128};
 
 /// Ascon generic over some Parameters
 ///
 /// This type is generic to support substituting various Ascon parameter sets. It is not intended to
-/// be uses directly. Use the [`Ascon128`], [`Ascon128a`], [`Ascon80pq`] type aliases instead.
+/// be uses directly. Use the [`AsconAead128`] type aliases instead.
 #[derive(Clone)]
 struct Ascon<P: Parameters> {
     key: P::InternalKey,
@@ -171,133 +171,32 @@ impl<P: Parameters> AeadInPlace for Ascon<P> {
     }
 }
 
-/// Ascon-128
-pub struct Ascon128(Ascon<Parameters128>);
-/// Key for Ascon-128
-pub type Ascon128Key = Key<Ascon128>;
-/// Nonce for Ascon-128
-pub type Ascon128Nonce = Nonce<Ascon128>;
-/// Tag for Ascon-128
-pub type Ascon128Tag = Tag<Ascon128>;
+/// Ascon-AEAD128
+pub struct AsconAead128(Ascon<Parameters128>);
+/// Key for Ascon-AEAD128
+pub type AsconAead128Key = Key<AsconAead128>;
+/// Nonce for Ascon-AEAD128
+pub type AsconAead128Nonce = Nonce<AsconAead128>;
+/// Tag for Ascon-AEAD128
+pub type AsconAead128Tag = Tag<AsconAead128>;
 
-impl KeySizeUser for Ascon128 {
+impl KeySizeUser for AsconAead128 {
     type KeySize = U16;
 }
 
-impl KeyInit for Ascon128 {
+impl KeyInit for AsconAead128 {
     fn new(key: &Key<Self>) -> Self {
         Self(Ascon::<Parameters128>::new(key))
     }
 }
 
-impl AeadCore for Ascon128 {
+impl AeadCore for AsconAead128 {
     type NonceSize = U16;
     type TagSize = U16;
     type CiphertextOverhead = U0;
 }
 
-impl AeadInPlace for Ascon128 {
-    #[inline(always)]
-    fn encrypt_in_place_detached(
-        &self,
-        nonce: &Nonce<Self>,
-        associated_data: &[u8],
-        buffer: &mut [u8],
-    ) -> Result<Tag<Self>, Error> {
-        self.0
-            .encrypt_in_place_detached(nonce, associated_data, buffer)
-    }
-
-    #[inline(always)]
-    fn decrypt_in_place_detached(
-        &self,
-        nonce: &Nonce<Self>,
-        associated_data: &[u8],
-        buffer: &mut [u8],
-        tag: &Tag<Self>,
-    ) -> Result<(), Error> {
-        self.0
-            .decrypt_in_place_detached(nonce, associated_data, buffer, tag)
-    }
-}
-
-/// Ascon-128a
-pub struct Ascon128a(Ascon<Parameters128a>);
-
-/// Key for Ascon-128a
-pub type Ascon128aKey = Key<Ascon128a>;
-/// Nonce for Ascon-128a
-pub type Ascon128aNonce = Nonce<Ascon128a>;
-/// Tag for Ascon-128a
-pub type Ascon128aTag = Tag<Ascon128a>;
-
-impl KeySizeUser for Ascon128a {
-    type KeySize = U16;
-}
-
-impl KeyInit for Ascon128a {
-    fn new(key: &Key<Self>) -> Self {
-        Self(Ascon::<Parameters128a>::new(key))
-    }
-}
-
-impl AeadCore for Ascon128a {
-    type NonceSize = U16;
-    type TagSize = U16;
-    type CiphertextOverhead = U0;
-}
-
-impl AeadInPlace for Ascon128a {
-    #[inline(always)]
-    fn encrypt_in_place_detached(
-        &self,
-        nonce: &Nonce<Self>,
-        associated_data: &[u8],
-        buffer: &mut [u8],
-    ) -> Result<Tag<Self>, Error> {
-        self.0
-            .encrypt_in_place_detached(nonce, associated_data, buffer)
-    }
-
-    #[inline(always)]
-    fn decrypt_in_place_detached(
-        &self,
-        nonce: &Nonce<Self>,
-        associated_data: &[u8],
-        buffer: &mut [u8],
-        tag: &Tag<Self>,
-    ) -> Result<(), Error> {
-        self.0
-            .decrypt_in_place_detached(nonce, associated_data, buffer, tag)
-    }
-}
-
-/// Ascon-80pq
-pub struct Ascon80pq(Ascon<Parameters80pq>);
-/// Key for Ascon-80pq
-pub type Ascon80pqKey = Key<Ascon80pq>;
-/// Nonce for Ascon-80pq
-pub type Ascon80pqNonce = Nonce<Ascon80pq>;
-/// Tag for Ascon-80pq
-pub type Ascon80pqTag = Tag<Ascon80pq>;
-
-impl KeySizeUser for Ascon80pq {
-    type KeySize = U20;
-}
-
-impl KeyInit for Ascon80pq {
-    fn new(key: &Key<Self>) -> Self {
-        Self(Ascon::<Parameters80pq>::new(key))
-    }
-}
-
-impl AeadCore for Ascon80pq {
-    type NonceSize = U16;
-    type TagSize = U16;
-    type CiphertextOverhead = U0;
-}
-
-impl AeadInPlace for Ascon80pq {
+impl AeadInPlace for AsconAead128 {
     #[inline(always)]
     fn encrypt_in_place_detached(
         &self,

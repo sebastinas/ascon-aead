@@ -3,54 +3,47 @@
 #![allow(unknown_lints, non_local_definitions)]
 
 use aead::{
-    consts::{U16, U20},
-    generic_array::{typenum::Unsigned, ArrayLength, GenericArray},
     Error,
+    consts::U16,
+    generic_array::{ArrayLength, GenericArray},
 };
-use ascon_core::{pad, State};
+use ascon_core::State;
 use subtle::ConstantTimeEq;
+
+/// Produce mask for padding.
+#[inline(always)]
+const fn pad(n: usize) -> u64 {
+    0x01_u64 << (8 * n)
+}
 
 /// Clear bytes from a 64 bit word.
 #[inline(always)]
 const fn clear(word: u64, n: usize) -> u64 {
-    word & (0x00ffffffffffffff >> (n * 8 - 8))
+    word & (0x00ffffffffffffff << (n * 8))
 }
 
-#[inline(always)]
-const fn keyrot(lo2hi: u64, hi2lo: u64) -> u64 {
-    lo2hi << 32 | hi2lo >> 32
-}
-
-// Helper functions to convert &[u8] to u64/u32. Once the `processing_*`
+// Helper functions to convert &[u8] to u64. Once the `processing_*`
 // functions are rewritten with `as_chunks`, they can be dropped.
 
 #[inline]
-fn u64_from_be_bytes(input: &[u8]) -> u64 {
+fn u64_from_bytes(input: &[u8]) -> u64 {
     // Soundness: function is always called with slices of the correct size
-    u64::from_be_bytes(input.try_into().unwrap())
+    u64::from_le_bytes(input.try_into().unwrap())
 }
 
 #[inline]
-fn u64_from_be_bytes_partial(input: &[u8]) -> u64 {
+fn u64_from_bytes_partial(input: &[u8]) -> u64 {
     let mut tmp = [0u8; 8];
     tmp[0..input.len()].copy_from_slice(input);
-    u64::from_be_bytes(tmp)
+    u64::from_le_bytes(tmp)
 }
 
-#[inline]
-fn u32_from_be_bytes(input: &[u8]) -> u32 {
-    // Soundness: function is always called with slices of the correct size
-    u32::from_be_bytes(input.try_into().unwrap())
-}
-
-/// Helper trait for handling differences in key usage of Ascon-128* and Ascon-80*
+/// Helper trait for handling differences in key usage of Ascon-128
 ///
 /// For internal use-only.
 pub(crate) trait InternalKey<KS: ArrayLength<u8>>:
     Sized + Clone + for<'a> From<&'a GenericArray<u8, KS>>
 {
-    /// Return K0.
-    fn get_k0(&self) -> u64;
     /// Return K1.
     fn get_k1(&self) -> u64;
     /// Return K2.
@@ -62,11 +55,6 @@ pub(crate) trait InternalKey<KS: ArrayLength<u8>>:
 pub(crate) struct InternalKey16(u64, u64);
 
 impl InternalKey<U16> for InternalKey16 {
-    #[inline(always)]
-    fn get_k0(&self) -> u64 {
-        0
-    }
-
     #[inline(always)]
     fn get_k1(&self) -> u64 {
         self.0
@@ -80,38 +68,7 @@ impl InternalKey<U16> for InternalKey16 {
 
 impl From<&GenericArray<u8, U16>> for InternalKey16 {
     fn from(key: &GenericArray<u8, U16>) -> Self {
-        Self(u64_from_be_bytes(&key[..8]), u64_from_be_bytes(&key[8..]))
-    }
-}
-
-#[derive(Clone)]
-#[cfg_attr(feature = "zeroize", derive(zeroize::Zeroize, zeroize::ZeroizeOnDrop))]
-pub(crate) struct InternalKey20(u64, u64, u32);
-
-impl InternalKey<U20> for InternalKey20 {
-    #[inline(always)]
-    fn get_k0(&self) -> u64 {
-        self.2 as u64
-    }
-
-    #[inline(always)]
-    fn get_k1(&self) -> u64 {
-        self.0
-    }
-
-    #[inline(always)]
-    fn get_k2(&self) -> u64 {
-        self.1
-    }
-}
-
-impl From<&GenericArray<u8, U20>> for InternalKey20 {
-    fn from(key: &GenericArray<u8, U20>) -> Self {
-        Self(
-            u64_from_be_bytes(&key[4..12]),
-            u64_from_be_bytes(&key[12..]),
-            u32_from_be_bytes(&key[..4]),
-        )
+        Self(u64_from_bytes(&key[..8]), u64_from_bytes(&key[8..]))
     }
 }
 
@@ -126,8 +83,6 @@ pub(crate) trait Parameters {
     /// For internal use-only.
     type InternalKey: InternalKey<Self::KeySize>;
 
-    /// Number of bytes to process per round
-    const COUNT: usize;
     /// Initialization vector used to initialize Ascon's state
     ///
     /// For internal use-only
@@ -141,30 +96,7 @@ impl Parameters for Parameters128 {
     type KeySize = U16;
     type InternalKey = InternalKey16;
 
-    const COUNT: usize = 8;
-    const IV: u64 = 0x80400c0600000000;
-}
-
-/// Parameters for Ascon-128a
-pub(crate) struct Parameters128a;
-
-impl Parameters for Parameters128a {
-    type KeySize = U16;
-    type InternalKey = InternalKey16;
-
-    const COUNT: usize = 16;
-    const IV: u64 = 0x80800c0800000000;
-}
-
-/// Parameters for Ascon-80pq
-pub(crate) struct Parameters80pq;
-
-impl Parameters for Parameters80pq {
-    type KeySize = U20;
-    type InternalKey = InternalKey20;
-
-    const COUNT: usize = 8;
-    const IV: u64 = 0xa0400c0600000000;
+    const IV: u64 = 0x00001000808c0001;
 }
 
 /// Core implementation of Ascon for one encryption/decryption operation
@@ -176,21 +108,14 @@ pub(crate) struct AsconCore<'a, P: Parameters> {
 impl<'a, P: Parameters> AsconCore<'a, P> {
     pub(crate) fn new(internal_key: &'a P::InternalKey, nonce: &GenericArray<u8, U16>) -> Self {
         let mut state = State::new(
-            if P::KeySize::USIZE == 20 {
-                P::IV ^ internal_key.get_k0()
-            } else {
-                P::IV
-            },
+            P::IV,
             internal_key.get_k1(),
             internal_key.get_k2(),
-            u64_from_be_bytes(&nonce[..8]),
-            u64_from_be_bytes(&nonce[8..]),
+            u64_from_bytes(&nonce[..8]),
+            u64_from_bytes(&nonce[8..]),
         );
 
         state.permute_12();
-        if P::KeySize::USIZE == 20 {
-            state[2] ^= internal_key.get_k0();
-        }
         state[3] ^= internal_key.get_k1();
         state[4] ^= internal_key.get_k2();
 
@@ -207,14 +132,10 @@ impl<'a, P: Parameters> AsconCore<'a, P> {
         self.state[4] ^= self.key.get_k2();
     }
 
-    /// Permutation with 6 or 8 rounds based on the parameters
+    /// Permutation with 8 rounds based on the parameters
     #[inline(always)]
     fn permute_state(&mut self) {
-        if P::COUNT == 8 {
-            self.state.permute_6();
-        } else {
-            self.state.permute_8();
-        }
+        self.state.permute_8();
     }
 
     fn process_associated_data(&mut self, associated_data: &[u8]) {
@@ -222,20 +143,18 @@ impl<'a, P: Parameters> AsconCore<'a, P> {
             // TODO: replace with as_chunks once stabilized
             // https://github.com/rust-lang/rust/issues/74985
 
-            let mut blocks = associated_data.chunks_exact(P::COUNT);
+            let mut blocks = associated_data.chunks_exact(16);
             for block in blocks.by_ref() {
                 // process full block of associated data
-                self.state[0] ^= u64_from_be_bytes(&block[..8]);
-                if P::COUNT == 16 {
-                    self.state[1] ^= u64_from_be_bytes(&block[8..16]);
-                }
+                self.state[0] ^= u64_from_bytes(&block[..8]);
+                self.state[1] ^= u64_from_bytes(&block[8..16]);
                 self.permute_state();
             }
 
             // process partial block if it exists
             let mut last_block = blocks.remainder();
-            let sidx = if P::COUNT == 16 && last_block.len() >= 8 {
-                self.state[0] ^= u64_from_be_bytes(&last_block[..8]);
+            let sidx = if last_block.len() >= 8 {
+                self.state[0] ^= u64_from_bytes(&last_block[..8]);
                 last_block = &last_block[8..];
                 1
             } else {
@@ -243,33 +162,31 @@ impl<'a, P: Parameters> AsconCore<'a, P> {
             };
             self.state[sidx] ^= pad(last_block.len());
             if !last_block.is_empty() {
-                self.state[sidx] ^= u64_from_be_bytes_partial(last_block);
+                self.state[sidx] ^= u64_from_bytes_partial(last_block);
             }
             self.permute_state();
         }
 
         // domain separation
-        self.state[4] ^= 1;
+        self.state[4] ^= 0x8000000000000000;
     }
 
     fn process_encrypt_inplace(&mut self, message: &mut [u8]) {
-        let mut blocks = message.chunks_exact_mut(P::COUNT);
+        let mut blocks = message.chunks_exact_mut(16);
         for block in blocks.by_ref() {
             // process full block of message
-            self.state[0] ^= u64_from_be_bytes(&block[..8]);
-            block[..8].copy_from_slice(&u64::to_be_bytes(self.state[0]));
-            if P::COUNT == 16 {
-                self.state[1] ^= u64_from_be_bytes(&block[8..16]);
-                block[8..16].copy_from_slice(&u64::to_be_bytes(self.state[1]));
-            }
+            self.state[0] ^= u64_from_bytes(&block[..8]);
+            block[..8].copy_from_slice(&u64::to_le_bytes(self.state[0]));
+            self.state[1] ^= u64_from_bytes(&block[8..16]);
+            block[8..16].copy_from_slice(&u64::to_le_bytes(self.state[1]));
             self.permute_state();
         }
 
         // process partial block if it exists
         let mut last_block = blocks.into_remainder();
-        let sidx = if P::COUNT == 16 && last_block.len() >= 8 {
-            self.state[0] ^= u64_from_be_bytes(&last_block[..8]);
-            last_block[..8].copy_from_slice(&u64::to_be_bytes(self.state[0]));
+        let sidx = if last_block.len() >= 8 {
+            self.state[0] ^= u64_from_bytes(&last_block[..8]);
+            last_block[..8].copy_from_slice(&u64::to_le_bytes(self.state[0]));
             last_block = &mut last_block[8..];
             1
         } else {
@@ -277,31 +194,29 @@ impl<'a, P: Parameters> AsconCore<'a, P> {
         };
         self.state[sidx] ^= pad(last_block.len());
         if !last_block.is_empty() {
-            self.state[sidx] ^= u64_from_be_bytes_partial(last_block);
-            last_block.copy_from_slice(&u64::to_be_bytes(self.state[sidx])[0..last_block.len()]);
+            self.state[sidx] ^= u64_from_bytes_partial(last_block);
+            last_block.copy_from_slice(&u64::to_le_bytes(self.state[sidx])[0..last_block.len()]);
         }
     }
 
     fn process_decrypt_inplace(&mut self, ciphertext: &mut [u8]) {
-        let mut blocks = ciphertext.chunks_exact_mut(P::COUNT);
+        let mut blocks = ciphertext.chunks_exact_mut(16);
         for block in blocks.by_ref() {
             // process full block of ciphertext
-            let cx = u64_from_be_bytes(&block[..8]);
-            block[..8].copy_from_slice(&u64::to_be_bytes(self.state[0] ^ cx));
+            let cx = u64_from_bytes(&block[..8]);
+            block[..8].copy_from_slice(&u64::to_le_bytes(self.state[0] ^ cx));
             self.state[0] = cx;
-            if P::COUNT == 16 {
-                let cx = u64_from_be_bytes(&block[8..16]);
-                block[8..16].copy_from_slice(&u64::to_be_bytes(self.state[1] ^ cx));
-                self.state[1] = cx;
-            }
+            let cx = u64_from_bytes(&block[8..16]);
+            block[8..16].copy_from_slice(&u64::to_le_bytes(self.state[1] ^ cx));
+            self.state[1] = cx;
             self.permute_state();
         }
 
         // process partial block if it exists
         let mut last_block = blocks.into_remainder();
-        let sidx = if P::COUNT == 16 && last_block.len() >= 8 {
-            let cx = u64_from_be_bytes(&last_block[..8]);
-            last_block[..8].copy_from_slice(&u64::to_be_bytes(self.state[0] ^ cx));
+        let sidx = if last_block.len() >= 8 {
+            let cx = u64_from_bytes(&last_block[..8]);
+            last_block[..8].copy_from_slice(&u64::to_le_bytes(self.state[0] ^ cx));
             self.state[0] = cx;
             last_block = &mut last_block[8..];
             1
@@ -310,31 +225,21 @@ impl<'a, P: Parameters> AsconCore<'a, P> {
         };
         self.state[sidx] ^= pad(last_block.len());
         if !last_block.is_empty() {
-            let cx = u64_from_be_bytes_partial(last_block);
+            let cx = u64_from_bytes_partial(last_block);
             self.state[sidx] ^= cx;
-            last_block.copy_from_slice(&u64::to_be_bytes(self.state[sidx])[0..last_block.len()]);
+            last_block.copy_from_slice(&u64::to_le_bytes(self.state[sidx])[0..last_block.len()]);
             self.state[sidx] = clear(self.state[sidx], last_block.len()) ^ cx;
         }
     }
 
     fn process_final(&mut self) -> [u8; 16] {
-        if P::KeySize::USIZE == 16 && P::COUNT == 8 {
-            self.state[1] ^= self.key.get_k1();
-            self.state[2] ^= self.key.get_k2();
-        } else if P::KeySize::USIZE == 16 && P::COUNT == 16 {
-            self.state[2] ^= self.key.get_k1();
-            self.state[3] ^= self.key.get_k2();
-        } else if P::KeySize::USIZE == 20 {
-            self.state[1] ^= keyrot(self.key.get_k0(), self.key.get_k1());
-            self.state[2] ^= keyrot(self.key.get_k1(), self.key.get_k2());
-            self.state[3] ^= keyrot(self.key.get_k2(), 0);
-        }
-
+        self.state[2] ^= self.key.get_k1();
+        self.state[3] ^= self.key.get_k2();
         self.permute_12_and_apply_key();
 
         let mut tag = [0u8; 16];
-        tag[..8].copy_from_slice(&u64::to_be_bytes(self.state[3]));
-        tag[8..].copy_from_slice(&u64::to_be_bytes(self.state[4]));
+        tag[..8].copy_from_slice(&u64::to_le_bytes(self.state[3]));
+        tag[8..].copy_from_slice(&u64::to_le_bytes(self.state[4]));
         tag
     }
 
@@ -373,12 +278,12 @@ mod test {
 
     #[test]
     fn clear_0to7() {
-        assert_eq!(clear(0x0123456789abcdef, 1), 0x23456789abcdef);
-        assert_eq!(clear(0x0123456789abcdef, 2), 0x456789abcdef);
-        assert_eq!(clear(0x0123456789abcdef, 3), 0x6789abcdef);
-        assert_eq!(clear(0x0123456789abcdef, 4), 0x89abcdef);
-        assert_eq!(clear(0x0123456789abcdef, 5), 0xabcdef);
-        assert_eq!(clear(0x0123456789abcdef, 6), 0xcdef);
-        assert_eq!(clear(0x0123456789abcdef, 7), 0xef);
+        assert_eq!(clear(0x0123456789abcdef, 1), 0x0123456789abcd00);
+        assert_eq!(clear(0x0123456789abcdef, 2), 0x0123456789ab0000);
+        assert_eq!(clear(0x0123456789abcdef, 3), 0x0123456789000000);
+        assert_eq!(clear(0x0123456789abcdef, 4), 0x0123456700000000);
+        assert_eq!(clear(0x0123456789abcdef, 5), 0x0123450000000000);
+        assert_eq!(clear(0x0123456789abcdef, 6), 0x0123000000000000);
+        assert_eq!(clear(0x0123456789abcdef, 7), 0x0100000000000000);
     }
 }

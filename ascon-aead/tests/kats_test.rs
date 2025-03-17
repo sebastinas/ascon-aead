@@ -1,12 +1,11 @@
 // Copyright 2022 Sebastian Ramacher
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
-use aead::Tag;
 use ascon_aead::{
+    AsconAead128, Key, Nonce, Tag,
     aead::{Aead, AeadInPlace, KeyInit, Payload},
-    Ascon128, Ascon128a, Ascon80pq, Key, Nonce,
 };
-use spectral::prelude::{asserting, OrderedAssertions, ResultAssertions};
+use spectral::prelude::{OrderedAssertions, ResultAssertions, asserting};
 use std::collections::HashMap;
 use std::include_str;
 
@@ -107,22 +106,6 @@ fn parse_tvs(tvs: &str) -> Vec<TestVector> {
 fn test_vectors_ascon128() {
     let tvs = parse_tvs(include_str!("data/ascon128.txt"));
     for tv in tvs {
-        run_tv::<Ascon128>(tv);
-    }
-}
-
-#[test]
-fn test_vectors_ascon128a() {
-    let tvs = parse_tvs(include_str!("data/ascon128a.txt"));
-    for tv in tvs {
-        run_tv::<Ascon128a>(tv);
-    }
-}
-
-#[test]
-fn test_vectors_ascon80pq() {
-    let tvs = parse_tvs(include_str!("data/ascon80pq.txt"));
-    for tv in tvs {
-        run_tv::<Ascon80pq>(tv);
+        run_tv::<AsconAead128>(tv);
     }
 }
