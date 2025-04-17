@@ -1,11 +1,4 @@
-# [RustCrypto]: Ascon permutation
-
-[![crate][crate-image]][crate-link]
-[![Docs][docs-image]][docs-link]
-[![Build Status][build-image]][build-link]
-![Apache2/MIT licensed][license-image]
-![Rust Version][rustc-image]
-[![Project Chat][chat-image]][chat-link]
+# Ascon permutation
 
 Pure Rust implementation of the permutation of [Ascon], a family of
 authenticated encryption and hashing algorithms designed to be lightweight and
@@ -29,10 +22,7 @@ portfolio of the [CAESAR competition].
 
 ## Minimum Supported Rust Version
 
-This crate requires **Rust 1.56** at a minimum.
-
-We may change the MSRV in the future, but it will be accompanied by a minor
-version bump.
+This crate requires **Rust 1.60** at a minimum.
 
 ## License
 
@@ -49,24 +39,10 @@ Unless you explicitly state otherwise, any contribution intentionally submitted
 for inclusion in the work by you, as defined in the Apache-2.0 license, shall be
 dual licensed as above, without any additional terms or conditions.
 
-[//]: # (badges)
-
-[crate-image]: https://buildstats.info/crate/ascon
-[crate-link]: https://crates.io/crates/ascon
-[docs-image]: https://docs.rs/ascon/badge.svg
-[docs-link]: https://docs.rs/ascon/
-[build-image]: https://github.com/RustCrypto/sponges/actions/workflows/ascon.yml/badge.svg
-[build-link]: https://github.com/RustCrypto/sponges/actions/workflows/ascon.yml
-[license-image]: https://img.shields.io/badge/license-Apache2.0/MIT-blue.svg
-[rustc-image]: https://img.shields.io/badge/rustc-1.56+-blue.svg
-[chat-image]: https://img.shields.io/badge/zulip-join_chat-blue.svg
-[chat-link]: https://rustcrypto.zulipchat.com/#narrow/stream/369879-sponges
-
 [//]: # (links)
 
-[`ascon-aead`]: https://github.com/RustCrypto/AEADs/tree/master/ascon-aead
-[`ascon-hash`]: https://github.com/RustCrypto/hashes/tree/master/ascon-hash
-[RustCrypto]: https://github.com/rustcrypto
+[`ascon-aead`]: https://crates.io/crate/ascon-aead
+[`ascon-hash`]: https://crates.io/crate/ascon-hash
 [Ascon]: https://ascon.iaik.tugraz.at/
 [New standard for lightweight cryptography]: https://www.nist.gov/news-events/news/2023/02/nist-selects-lightweight-cryptography-algorithms-protect-small-devices
 [NIST Lightweight Cryptography]: https://csrc.nist.gov/projects/lightweight-cryptography/finalists
