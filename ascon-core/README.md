@@ -4,8 +4,6 @@ Pure Rust implementation of the permutation of [Ascon], a family of
 authenticated encryption and hashing algorithms designed to be lightweight and
 easy to implement.
 
-[Documentation][docs-link]
-
 ## About
 
 Ascon is a family of lightweight algorithms built on a core permutation
