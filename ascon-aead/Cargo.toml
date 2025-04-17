@@ -18,7 +18,7 @@ subtle = { version = "2", default-features = false }
 zeroize = { version = "1.5", optional = true, default-features = false, features = [
     "derive",
 ] }
-ascon-core = { version = "0.4", path = "../ascon-core" }
+ascon-core = { version = "0.4", path = "../ascon-core", default-features = false }
 
 [dev-dependencies]
 hex = "0.4"
@@ -30,7 +30,7 @@ default = ["dep:zeroize", "alloc"]
 std = ["aead/std", "alloc"]
 alloc = ["aead/alloc"]
 heapless = ["aead/heapless"]
-zeroize = []
+zeroize = ["ascon-core/zeroize"]
 
 [package.metadata.docs.rs]
 all-features = true
