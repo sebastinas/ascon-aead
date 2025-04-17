@@ -9,8 +9,8 @@ repository = "https://github.com/sebastinas/ascon-aead/tree/master/ascon-core"
 keywords = ["Ascon", "crypto", "permutation"]
 categories = ["cryptography", "no-std"]
 readme = "README.md"
-edition = "2021"
-rust-version = "1.60"
+edition = "2024"
+rust-version = "1.85"
 
 [dependencies]
 zeroize = { version = "1.6.0", default-features = false, optional = true }

@@ -22,7 +22,7 @@ portfolio of the [CAESAR competition].
 
 ## Minimum Supported Rust Version
 
-This crate requires **Rust 1.60** at a minimum.
+This crate requires **Rust 1.85** at a minimum.
 
 ## License
 
