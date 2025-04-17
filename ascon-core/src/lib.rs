@@ -12,6 +12,7 @@
 #![warn(missing_docs)]
 
 use core::mem::size_of;
+
 #[cfg(feature = "zeroize")]
 use zeroize::{Zeroize, ZeroizeOnDrop};
 

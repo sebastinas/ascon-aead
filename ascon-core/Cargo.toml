@@ -10,13 +10,14 @@ keywords = ["Ascon", "crypto", "permutation"]
 categories = ["cryptography", "no-std"]
 readme = "README.md"
 edition = "2021"
-rust-version = "1.56"
+rust-version = "1.60"
 
 [dependencies]
 zeroize = { version = "1.6.0", default-features = false, optional = true }
 
 [features]
-no_unroll = [] # Do not unroll loops for binary size reduction
+no_unroll = []            # Do not unroll loops for binary size reduction
+zeroize = ["dep:zeroize"]
 
 [package.metadata.docs.rs]
 rustdoc-args = ["--cfg", "docsrs"]
