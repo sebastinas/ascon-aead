@@ -1,6 +1,6 @@
 [package]
 name = "ascon-hash"
-version = "0.2.1"
+version = "0.3.0"
 description = "Implementation of Ascon-Hash256 and Ascon-XOF256"
 authors = ["Sebastian Ramacher <sebastian.ramacher@ait.ac.at>"]
 license = "Apache-2.0 OR MIT"
@@ -14,7 +14,7 @@ rust-version = "1.85"
 
 [dependencies]
 digest = { version = "0.10", default-features = false, features = ["core-api"] }
-ascon-core = { version = "0.4", path = "../ascon-core", default-features = false }
+ascon-core = { version = "0.5", path = "../ascon-core", default-features = false }
 
 [dev-dependencies]
 spectral = { version = "0.6", default-features = false }

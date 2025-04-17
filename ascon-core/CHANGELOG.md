@@ -2,7 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
-## 0.4.1 (2025-07-17)
+## 0.5.0 (2025-04-17)
+
+* Bump MSRV to 1.85 and edition to 2024
+* Remove unused permutations and padding functions
+
+## 0.4.1 (2025-04-17)
 
 * Rename back to `ascon-core`
 * Bump MSRV to 1.60 and edition to 2021

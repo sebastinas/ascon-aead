@@ -1,5 +1,17 @@
 # Changelog
+
 All notable changes to this project will be documented in this file.
+
+## 0.5.0 (2025-04-17)
+
+* Bump MSRV to 1.85 and edition to 2024
+* Bump `ascon-core` to 0.5
+* Align feature flags with other AEAD crates
+* Update for compliance with NIST [draft]
+  - Rename `Ascon128` to `AsconAead128`
+  - Remove `Ascon128a` and `Ascon80pq`
+
+[draft]: https://doi.org/10.6028/NIST.SP.800-232.ipd
 
 ## 0.4.4 (2025-04-17)
 

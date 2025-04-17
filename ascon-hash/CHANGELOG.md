@@ -1,5 +1,17 @@
 # Changelog
+
 All notable changes to this project will be documented in this file.
+
+## 0.3.0 (2025-04-17)
+
+* Bump MSRV to 1.85 and edition to 2024
+* Bump `ascon-core` to 0.5
+* Update for compliance with NIST [draft]
+  - Rename `AsconHash` to `AsconHash256`
+  - Rename `AsconXof` to `AsconXof128`
+  - Remove `AsconAHash` and `AsconAXof`
+
+[draft]: https://doi.org/10.6028/NIST.SP.800-232.ipd
 
 ## 0.2.1 (2025-04-17)
 
