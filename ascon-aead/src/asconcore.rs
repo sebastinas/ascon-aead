@@ -7,7 +7,7 @@ use aead::{
     generic_array::{typenum::Unsigned, ArrayLength, GenericArray},
     Error,
 };
-use ascon::{pad, State};
+use ascon_core::{pad, State};
 use subtle::ConstantTimeEq;
 
 /// Clear bytes from a 64 bit word.

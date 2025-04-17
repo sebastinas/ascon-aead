@@ -1,11 +1,4 @@
-# RustCrypto: Ascon
-
-[![crate][crate-image]][crate-link]
-[![Docs][docs-image]][docs-link]
-![Apache2/MIT licensed][license-image]
-![Rust Version][rustc-image]
-[![Project Chat][chat-image]][chat-link]
-[![Build Status][build-image]][build-link]
+# Ascon AEAD
 
 Pure Rust implementation of the lightweight
 [Authenticated Encryption with Associated Data (AEAD)][1] algorithms
@@ -19,10 +12,7 @@ USE AT YOUR OWN RISK!
 
 ## Minimum Supported Rust Version
 
-This crate requires **Rust 1.56** at a minimum.
-
-We may change the MSRV in the future, but it will be accompanied by a minor
-version bump.
+This crate requires **Rust 1.60** at a minimum.
 
 ## License
 
@@ -38,19 +28,6 @@ at your option.
 Unless you explicitly state otherwise, any contribution intentionally submitted
 for inclusion in the work by you, as defined in the Apache-2.0 license, shall be
 dual licensed as above, without any additional terms or conditions.
-
-[//]: # (badges)
-
-[crate-image]: https://buildstats.info/crate/ascon-aead
-[crate-link]: https://crates.io/crates/ascon-aead
-[docs-image]: https://docs.rs/ascon-aead/badge.svg
-[docs-link]: https://docs.rs/ascon-aead
-[license-image]: https://img.shields.io/badge/license-Apache2.0/MIT-blue.svg
-[rustc-image]: https://img.shields.io/badge/rustc-1.56+-blue.svg
-[chat-image]: https://img.shields.io/badge/zulip-join_chat-blue.svg
-[chat-link]: https://rustcrypto.zulipchat.com/#narrow/stream/260038-AEADs
-[build-image]: https://github.com/RustCrypto/AEADs/workflows/ascon-aead/badge.svg?branch=master&event=push
-[build-link]: https://github.com/RustCrypto/AEADs/actions
 
 [//]: # (general links)
 
