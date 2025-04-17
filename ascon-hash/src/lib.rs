@@ -4,10 +4,6 @@
 #![no_std]
 #![cfg_attr(docsrs, feature(doc_auto_cfg))]
 #![doc = include_str!("../README.md")]
-#![doc(
-    html_logo_url = "https://raw.githubusercontent.com/RustCrypto/meta/master/logo.svg",
-    html_favicon_url = "https://raw.githubusercontent.com/RustCrypto/meta/master/logo.svg"
-)]
 #![warn(missing_docs)]
 
 //! ## Usage (Hashing)
@@ -36,7 +32,7 @@
 
 use core::marker::PhantomData;
 
-use ascon::{pad, State};
+use ascon_core::{pad, State};
 pub use digest::{self, Digest, ExtendableOutput, Reset, Update, XofReader};
 use digest::{
     block_buffer::Eager,

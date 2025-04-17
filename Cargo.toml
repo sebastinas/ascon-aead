@@ -1,2 +1,2 @@
 [workspace]
-members = ["ascon-core", "ascon-aead"]
+members = ["ascon-core", "ascon-aead", "ascon-hash"]
