@@ -13,7 +13,7 @@ jobs:
       matrix:
         toolchain:
           - stable
-          - beta
+          - "1.85"
         os:
           - ubuntu-latest
           - windows-latest
