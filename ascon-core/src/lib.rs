@@ -1,4 +1,4 @@
-// Copyright 2021-2022 Sebastian Ramacher
+// Copyright 2021-2025 Sebastian Ramacher
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
 #![no_std]
@@ -11,12 +11,6 @@ use core::mem::size_of;
 
 #[cfg(feature = "zeroize")]
 use zeroize::{Zeroize, ZeroizeOnDrop};
-
-/// Produce mask for padding.
-#[inline(always)]
-pub const fn pad(n: usize) -> u64 {
-    0x80_u64 << (56 - 8 * n)
-}
 
 /// Compute round constant
 #[inline(always)]
@@ -140,26 +134,6 @@ impl State {
             .fold(self.x, round);
     }
 
-    #[cfg(not(feature = "no_unroll"))]
-    /// Perform permutation with 6 rounds.
-    pub fn permute_6(&mut self) {
-        self.x = round(
-            round(
-                round(round(round(round(self.x, 0x96), 0x87), 0x78), 0x69),
-                0x5a,
-            ),
-            0x4b,
-        );
-    }
-
-    #[cfg(feature = "no_unroll")]
-    /// Perform permutation with 6 rounds.
-    pub fn permute_6(&mut self) {
-        self.x = [0x96, 0x87, 0x78, 0x69, 0x5a, 0x4b]
-            .into_iter()
-            .fold(self.x, round);
-    }
-
     /// Perform permutation with 1 round
     pub fn permute_1(&mut self) {
         self.x = round(self.x, 0x4b);
@@ -276,18 +250,6 @@ mod tests {
     use super::*;
 
     #[test]
-    fn pad_0to7() {
-        assert_eq!(pad(0), 0x8000000000000000);
-        assert_eq!(pad(1), 0x80000000000000);
-        assert_eq!(pad(2), 0x800000000000);
-        assert_eq!(pad(3), 0x8000000000);
-        assert_eq!(pad(4), 0x80000000);
-        assert_eq!(pad(5), 0x800000);
-        assert_eq!(pad(6), 0x8000);
-        assert_eq!(pad(7), 0x80);
-    }
-
-    #[test]
     fn round_constants() {
         assert_eq!(round_constant(0), 0xf0);
         assert_eq!(round_constant(1), 0xe1);
@@ -345,23 +307,6 @@ mod tests {
     }
 
     #[test]
-    fn state_permute_6() {
-        let mut state = State::new(
-            0x0123456789abcdef,
-            0xef0123456789abcd,
-            0xcdef0123456789ab,
-            0xabcdef0123456789,
-            0x89abcdef01234567,
-        );
-        state.permute_6();
-        assert_eq!(state[0], 0xc27b505c635eb07f);
-        assert_eq!(state[1], 0xd388f5d2a72046fa);
-        assert_eq!(state[2], 0x9e415c204d7b15e7);
-        assert_eq!(state[3], 0xce0d71450fe44581);
-        assert_eq!(state[4], 0xdd7c5fef57befe48);
-    }
-
-    #[test]
     fn state_permute_8() {
         let mut state = State::new(
             0x0123456789abcdef,
@@ -388,10 +333,6 @@ mod tests {
             0x89abcdef01234567,
         );
         let mut state2 = state.clone();
-
-        state.permute_6();
-        state2.permute_n(6);
-        assert_eq!(state.x, state2.x);
 
         state.permute_8();
         state2.permute_n(8);
