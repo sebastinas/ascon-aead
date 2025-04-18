@@ -61,25 +61,22 @@ fn run_tv_xof<X: ExtendableOutput + Default>(tv: TestVector) {
 }
 
 fn parse_tvs(tvs: &str) -> Vec<TestVector> {
-    let mut fields: HashMap<String, String> = HashMap::new();
+    let mut fields: HashMap<&str, &str> = HashMap::new();
     let mut ret = Vec::new();
 
     for line in tvs.lines() {
         if line.is_empty() && !fields.is_empty() {
             ret.push(TestVector::new(
-                &fields["Count"],
-                &fields["Msg"],
-                &fields["MD"],
+                fields["Count"],
+                fields["Msg"],
+                fields["MD"],
             ));
             fields.clear();
             continue;
         }
 
         let mut values = line.split(" = ");
-        fields.insert(
-            values.next().unwrap().to_string(),
-            values.next().unwrap().to_string(),
-        );
+        fields.insert(values.next().unwrap(), values.next().unwrap());
     }
 
     asserting!("Test Vectors available")
