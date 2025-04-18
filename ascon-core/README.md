@@ -18,6 +18,13 @@ Ascon has been selected as [new standard for lightweight cryptography] in the
 primary choice for lightweight authenticated encryption in the final
 portfolio of the [CAESAR competition].
 
+## Configuration options
+
+Per default, the permutation is unrolled. If this is not desired, e.g., due to
+space constraints, build with `--cfg ascon_impl=no_unroll` switch to a more
+compact implementation. The performance/size impact needs to be measured per
+target platform, though.
+
 ## Minimum Supported Rust Version
 
 This crate requires **Rust 1.85** at a minimum.

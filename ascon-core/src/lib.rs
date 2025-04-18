@@ -71,7 +71,7 @@ impl State {
 
     /// Perform permutation with 12 rounds.
     pub fn permute_12(&mut self) {
-        #[cfg(not(feature = "no_unroll"))]
+        #[cfg(not(ascon_impl = "no_unroll"))]
         {
             // We could in theory iter().fold() over an array of round constants,
             // but the compiler produces better results when optimizing this chain
@@ -106,7 +106,7 @@ impl State {
             );
         }
 
-        #[cfg(feature = "no_unroll")]
+        #[cfg(ascon_impl = "no_unroll")]
         {
             self.x = [
                 0xf0, 0xe1, 0xd2, 0xc3, 0xb4, 0xa5, 0x96, 0x87, 0x78, 0x69, 0x5a, 0x4b,
@@ -118,7 +118,7 @@ impl State {
 
     /// Perform permutation with 8 rounds.
     pub fn permute_8(&mut self) {
-        #[cfg(not(feature = "no_unroll"))]
+        #[cfg(not(ascon_impl = "no_unroll"))]
         {
             self.x = round(
                 round(
@@ -135,7 +135,7 @@ impl State {
             );
         }
 
-        #[cfg(feature = "no_unroll")]
+        #[cfg(ascon_impl = "no_unroll")]
         {
             self.x = [0xb4, 0xa5, 0x96, 0x87, 0x78, 0x69, 0x5a, 0x4b]
                 .into_iter()
