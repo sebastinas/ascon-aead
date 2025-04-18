@@ -13,7 +13,9 @@ edition = "2024"
 rust-version = "1.85"
 
 [dependencies]
-zeroize = { version = "1.6.0", default-features = false, optional = true }
+zeroize = { version = "1.6.0", default-features = false, features = [
+    "derive",
+], optional = true }
 
 [features]
 no_unroll = []            # Do not unroll loops for binary size reduction

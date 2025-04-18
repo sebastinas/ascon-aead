@@ -7,7 +7,10 @@
 #![forbid(unsafe_code)]
 #![warn(missing_docs)]
 
-use core::mem::size_of;
+use core::{
+    mem::size_of,
+    ops::{Index, IndexMut},
+};
 
 #[cfg(feature = "zeroize")]
 use zeroize::{Zeroize, ZeroizeOnDrop};
@@ -22,6 +25,7 @@ const fn round_constant(round: u64) -> u64 {
 ///
 /// The permutation operates on a state of 320 bits represented as 5 64 bit words.
 #[derive(Clone, Debug, Default)]
+#[cfg_attr(feature = "zeroize", derive(Zeroize, ZeroizeOnDrop))]
 pub struct State {
     x: [u64; 5],
 }
@@ -164,7 +168,7 @@ impl State {
     }
 }
 
-impl core::ops::Index<usize> for State {
+impl Index<usize> for State {
     type Output = u64;
 
     #[inline(always)]
@@ -173,7 +177,7 @@ impl core::ops::Index<usize> for State {
     }
 }
 
-impl core::ops::IndexMut<usize> for State {
+impl IndexMut<usize> for State {
     #[inline(always)]
     fn index_mut(&mut self, index: usize) -> &mut Self::Output {
         &mut self.x[index]
@@ -234,16 +238,6 @@ impl AsRef<[u64]> for State {
         &self.x
     }
 }
-
-#[cfg(feature = "zeroize")]
-impl Drop for State {
-    fn drop(&mut self) {
-        self.x.zeroize();
-    }
-}
-
-#[cfg(feature = "zeroize")]
-impl ZeroizeOnDrop for State {}
 
 #[cfg(test)]
 mod tests {
