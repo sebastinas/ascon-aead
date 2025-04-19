@@ -2,7 +2,7 @@
 
 
 Pure Rust implementation of the lightweight cryptographic hash function
-[AsconHash256][1] and the extendable output functions (XOF) AsconXOF256.
+[AsconHash256][1] and the extendable output functions (XOF) AsconXOF128.
 
 ## Security Notes
 
