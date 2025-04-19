@@ -29,6 +29,10 @@ jobs:
         run: cargo test --workspace
       - name: Test with all features
         run: cargo test --workspace --all-features
+      - name: Test with all features (no_unroll)
+        run: cargo test --workspace --all-features
+        env:
+          RUSTFLAGS: "--cfg ascon_impl=\"no_unroll\""
 
   test-cross:
     runs-on: ubuntu-latest
