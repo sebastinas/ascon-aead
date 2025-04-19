@@ -25,5 +25,5 @@ rustdoc-args = ["--cfg", "docsrs"]
 
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = [
-    'cfg(ascon_impl="no_unroll")',
+    'cfg(ascon_impl, values("no_unroll"))',
 ] }
