@@ -21,7 +21,7 @@ portfolio of the [CAESAR competition].
 ## Configuration options
 
 Per default, the permutation is unrolled. If this is not desired, e.g., due to
-space constraints, build with `--cfg ascon_impl=no_unroll` switch to a more
+space constraints, build with `--cfg ascon_impl="no_unroll"` switch to a more
 compact implementation. The performance/size impact needs to be measured per
 target platform, though.
 
