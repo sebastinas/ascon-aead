@@ -21,22 +21,14 @@ jobs:
     name: Test (${{matrix.toolchain}} toolchain, ${{matrix.os}})
     steps:
       - uses: actions/checkout@v3
-      - uses: actions-rs/toolchain@v1
+      - uses: dtolnay/rust-toolchain@master
         with:
-          profile: minimal
           toolchain: ${{matrix.toolchain}}
-          override: true
       - uses: Swatinem/rust-cache@v2
       - name: Test with default features
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: --workspace
+        run: cargo test --workspace
       - name: Test with all features
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: --workspace --all-features
+        run: cargo test --workspace --all-features
 
   test-cross:
     runs-on: ubuntu-latest
@@ -51,54 +43,34 @@ jobs:
     name: Cross test for ${{matrix.target}}
     steps:
       - uses: actions/checkout@v3
-      - uses: actions-rs/toolchain@v1
+      - uses: dtolnay/rust-toolchain@master
         with:
-          profile: minimal
           toolchain: stable
-          override: true
           target: ${{matrix.target}}
       - uses: Swatinem/rust-cache@v2
-      - name: Test with default features
-        uses: actions-rs/cargo@v1
-        with:
-          use-cross: true
-          command: test
-          args: --workspace --target ${{matrix.target}}
+      - name: Install cross
+        run: cargo install cross
       - name: Test with all features
-        uses: actions-rs/cargo@v1
-        with:
-          use-cross: true
-          command: test
-          args: --workspace --all-features --target ${{matrix.target}}
+        run: cross test -r --all-features --workspace --target ${{matrix.target}}
 
   fmt:
     name: Rustfmt
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: actions-rs/toolchain@v1
+      - uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: stable
-          override: true
           components: rustfmt
       - uses: Swatinem/rust-cache@v2
-      - uses: actions-rs/cargo@v1
-        with:
-          command: fmt
-          args: --all -- --check
+      - run: cargo fmt --workspace -- --check
 
   clippy:
     name: Clippy
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: actions-rs/toolchain@v1
+      - uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: stable
-          override: true
           components: clippy
       - uses: Swatinem/rust-cache@v2
-      - uses: actions-rs/clippy-check@v1
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          args: --workspace -- -D warnings
+      - run: cargo clippy --workspace --all-features -- -D warnings
