@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.5.1 (2025-05-21)
+
+* Fix crate metadata
+* Remove cruft KATs
+
 ## 0.5.0 (2025-04-17)
 
 * Bump MSRV to 1.85 and edition to 2024

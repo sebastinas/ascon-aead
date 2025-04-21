@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.3.1 (2025-05-21)
+
+* Fix crate metadata
+* Remove cruft KATs
+* Provide `digest`'s `alloc` feature
+
 ## 0.3.0 (2025-04-17)
 
 * Bump MSRV to 1.85 and edition to 2024

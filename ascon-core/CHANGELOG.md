@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.5.1 (2025-05-21)
+
+* Re-add permutation with 1 and 6 rounds with feature flags (`permutate_1` and `permute_6`)
+* Select `no_unroll` implementation with `cfg` flag
+* Fix crate metadata
+
 ## 0.5.0 (2025-04-17)
 
 * Bump MSRV to 1.85 and edition to 2024
@@ -63,12 +69,26 @@ All notable changes to this project will be documented in this file.
 [#43]: https://github.com/RustCrypto/sponges/pull/43
 [#44]: https://github.com/RustCrypto/sponges/pull/44
 
-## 0.1.4 (2017-03-27)
+## 0.1.4 (2023-03-21)
 
-## 0.1.3 (2016-11-13)
+* Add more deprecation notes.
+* Remove benchmarks
 
-## 0.1.2 (2016-11-01)
+## 0.1.3 (2023-03-17)
 
-## 0.1.1 (2016-11-01)
+* Deprecate this crate in favor of `ascon`.
 
-## 0.1.0 (2016-07-26)
+## 0.1.2 (2022-06-26)
+
+* Implement `Default` for `State`.
+* Add `no_unroll` feature to reduce binary size if needed.
+
+## 0.1.1 (2022-06-11)
+
+* Add permutation with user-specified number of rounds (up to 12).
+* Add permutation with 1 round.
+* Add benchmarks
+
+## 0.1 (2022-06-03)
+
+* Split permutation off of `ascon-aead`.
