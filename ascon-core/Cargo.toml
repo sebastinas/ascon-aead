@@ -19,6 +19,8 @@ zeroize = { version = "1.6.0", default-features = false, features = [
 
 [features]
 zeroize = ["dep:zeroize"]
+permute_1 = []
+permute_6 = []
 
 [package.metadata.docs.rs]
 rustdoc-args = ["--cfg", "docsrs"]

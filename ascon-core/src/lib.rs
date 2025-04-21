@@ -98,6 +98,13 @@ impl State {
         self.x = apply_permutation!(self.x, 0xb4, 0xa5, 0x96, 0x87, 0x78, 0x69, 0x5a, 0x4b);
     }
 
+    #[cfg(feature = "permute_6")]
+    /// Perform permutation with 6 rounds.
+    pub fn permute_6(&mut self) {
+        self.x = apply_permutation!(self.x, 0x96, 0x87, 0x78, 0x69, 0x5a, 0x4b);
+    }
+
+    #[cfg(feature = "permute_1")]
     /// Perform permutation with 1 round
     pub fn permute_1(&mut self) {
         self.x = round(self.x, 0x4b);
@@ -277,6 +284,24 @@ mod tests {
         assert_eq!(state[4], 0x28cefb195a7c651c);
     }
 
+    #[cfg(feature = "permute_6")]
+    #[test]
+    fn state_permute_6() {
+        let mut state = State::new(
+            0x0123456789abcdef,
+            0xef0123456789abcd,
+            0xcdef0123456789ab,
+            0xabcdef0123456789,
+            0x89abcdef01234567,
+        );
+        state.permute_6();
+        assert_eq!(state[0], 0xc27b505c635eb07f);
+        assert_eq!(state[1], 0xd388f5d2a72046fa);
+        assert_eq!(state[2], 0x9e415c204d7b15e7);
+        assert_eq!(state[3], 0xce0d71450fe44581);
+        assert_eq!(state[4], 0xdd7c5fef57befe48);
+    }
+
     #[test]
     fn state_permute_n() {
         let mut state = State::new(
@@ -287,6 +312,13 @@ mod tests {
             0x89abcdef01234567,
         );
         let mut state2 = state.clone();
+
+        #[cfg(feature = "permute_6")]
+        {
+            state.permute_6();
+            state2.permute_n(6);
+            assert_eq!(state.x, state2.x);
+        }
 
         state.permute_8();
         state2.permute_n(8);
