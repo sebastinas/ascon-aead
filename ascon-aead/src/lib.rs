@@ -11,13 +11,14 @@
 //! Simple usage (allocating, no associated data):
 //!
 //! ```
-//! use ascon_aead::{AsconAead128, Key, Nonce};
+//! use ascon_aead::{AsconAead128, AsconAead128Key, AsconAead128Nonce, Key, Nonce};
 //! use ascon_aead::aead::{Aead, KeyInit};
 //!
-//! let key = Key::<AsconAead128>::from_slice(b"very secret key.");
+//! let key = AsconAead128Key::from_slice(b"very secret key.");
 //! let cipher = AsconAead128::new(key);
 //!
-//! let nonce = Nonce::<AsconAead128>::from_slice(b"unique nonce 012"); // 128-bits; unique per message
+//! // 128-bits; unique per message
+//! let nonce = AsconAead128Nonce::from_slice(b"unique nonce 012");
 //!
 //! let ciphertext = cipher.encrypt(nonce, b"plaintext message".as_ref())
 //!     .expect("encryption failure!"); // NOTE: handle this error to avoid panics!
@@ -38,7 +39,8 @@
 //! let key = AsconAead128::generate_key(&mut OsRng);
 //! let cipher = AsconAead128::new(&key);
 //!
-//! let nonce = AsconAead128::generate_nonce(&mut OsRng); // 128 bits; unique per message
+//! // 128 bits; unique per message
+//! let nonce = AsconAead128::generate_nonce(&mut OsRng);
 //!
 //! let ciphertext = cipher.encrypt(&nonce, b"plaintext message".as_ref())
 //!     .expect("encryption failure!"); // NOTE: handle this error to avoid panics!
@@ -67,16 +69,18 @@
 //!
 //! ```
 //! # #[cfg(feature = "heapless")] {
-//! use ascon_aead::{AsconAead128, Key, Nonce};
+//! use ascon_aead::{AsconAead128, AsconAead128Key, AsconAead128Nonce, Key, Nonce};
 //! use ascon_aead::aead::{AeadInPlace, KeyInit};
 //! use ascon_aead::aead::heapless::Vec;
 //!
-//! let key = Key::<AsconAead128>::from_slice(b"very secret key.");
+//! let key = AsconAead128Key::from_slice(b"very secret key.");
 //! let cipher = AsconAead128::new(key);
 //!
-//! let nonce = Nonce::<AsconAead128>::from_slice(b"unique nonce 012"); // 128-bits; unique per message
+//! // 128-bits; unique per message
+//! let nonce = AsconAead128Nonce::from_slice(b"unique nonce 012");
 //!
-//! let mut buffer: Vec<u8, 128> = Vec::new(); // Buffer needs 16-bytes overhead for authentication tag
+//! // Buffer needs 16-bytes overhead for authentication tag
+//! let mut buffer: Vec<u8, 128> = Vec::new();
 //! buffer.extend_from_slice(b"plaintext message");
 //!
 //! // Encrypt `buffer` in-place, replacing the plaintext contents with ciphertext
