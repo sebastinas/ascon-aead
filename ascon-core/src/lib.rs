@@ -21,6 +21,23 @@ const fn round_constant(round: u64) -> u64 {
     ((0xfu64 - round) << 4) | round
 }
 
+#[cfg(not(ascon_impl = "no_unroll"))]
+macro_rules! apply_permutation {
+    ($state:expr, $rc:literal) => {
+        round($state, $rc)
+    };
+    ($state:expr, $rc:literal, $($rcs:literal),+) => {
+        apply_permutation!(round($state, $rc), $($rcs),+)
+    };
+}
+
+#[cfg(ascon_impl = "no_unroll")]
+macro_rules! apply_permutation {
+    ($state:expr, $($rcs:literal),+) => {
+        [$($rcs),+].into_iter().fold($state, round)
+    };
+}
+
 /// The state of Ascon's permutation.
 ///
 /// The permutation operates on a state of 320 bits represented as 5 64 bit words.
@@ -71,76 +88,14 @@ impl State {
 
     /// Perform permutation with 12 rounds.
     pub fn permute_12(&mut self) {
-        #[cfg(not(ascon_impl = "no_unroll"))]
-        {
-            // We could in theory iter().fold() over an array of round constants,
-            // but the compiler produces better results when optimizing this chain
-            // of round function calls.
-            self.x = round(
-                round(
-                    round(
-                        round(
-                            round(
-                                round(
-                                    round(
-                                        round(
-                                            round(
-                                                round(round(round(self.x, 0xf0), 0xe1), 0xd2),
-                                                0xc3,
-                                            ),
-                                            0xb4,
-                                        ),
-                                        0xa5,
-                                    ),
-                                    0x96,
-                                ),
-                                0x87,
-                            ),
-                            0x78,
-                        ),
-                        0x69,
-                    ),
-                    0x5a,
-                ),
-                0x4b,
-            );
-        }
-
-        #[cfg(ascon_impl = "no_unroll")]
-        {
-            self.x = [
-                0xf0, 0xe1, 0xd2, 0xc3, 0xb4, 0xa5, 0x96, 0x87, 0x78, 0x69, 0x5a, 0x4b,
-            ]
-            .into_iter()
-            .fold(self.x, round);
-        }
+        self.x = apply_permutation!(
+            self.x, 0xf0, 0xe1, 0xd2, 0xc3, 0xb4, 0xa5, 0x96, 0x87, 0x78, 0x69, 0x5a, 0x4b
+        );
     }
 
     /// Perform permutation with 8 rounds.
     pub fn permute_8(&mut self) {
-        #[cfg(not(ascon_impl = "no_unroll"))]
-        {
-            self.x = round(
-                round(
-                    round(
-                        round(
-                            round(round(round(round(self.x, 0xb4), 0xa5), 0x96), 0x87),
-                            0x78,
-                        ),
-                        0x69,
-                    ),
-                    0x5a,
-                ),
-                0x4b,
-            );
-        }
-
-        #[cfg(ascon_impl = "no_unroll")]
-        {
-            self.x = [0xb4, 0xa5, 0x96, 0x87, 0x78, 0x69, 0x5a, 0x4b]
-                .into_iter()
-                .fold(self.x, round);
-        }
+        self.x = apply_permutation!(self.x, 0xb4, 0xa5, 0x96, 0x87, 0x78, 0x69, 0x5a, 0x4b);
     }
 
     /// Perform a given number (up to 12) of permutations
