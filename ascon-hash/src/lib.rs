@@ -30,7 +30,7 @@
 //! assert_eq!(&dst, b"\x8c\x7d\xd1\x14\xa0");
 //! ```
 
-use core::marker::PhantomData;
+use core::{fmt, marker::PhantomData};
 
 use ascon_core::State;
 pub use digest::{self, Digest, ExtendableOutput, Reset, Update, XofReader};
@@ -194,7 +194,7 @@ impl Reset for AsconCore {
 }
 
 impl AlgorithmName for AsconCore {
-    fn write_alg_name(f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+    fn write_alg_name(f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str("Ascon-Hash256")
     }
 }
@@ -259,7 +259,7 @@ impl Reset for AsconXofCore {
 }
 
 impl AlgorithmName for AsconXofCore {
-    fn write_alg_name(f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+    fn write_alg_name(f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str("Ascon-XOF128")
     }
 }
