@@ -1,6 +1,5 @@
 // Copyright 2021-2025 Sebastian Ramacher
 // SPDX-License-Identifier: Apache-2.0 OR MIT
-#![allow(unknown_lints, non_local_definitions)]
 
 use aead::{
     Error,
