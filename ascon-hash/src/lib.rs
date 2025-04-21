@@ -260,7 +260,7 @@ impl Reset for AsconXofCore {
 
 impl AlgorithmName for AsconXofCore {
     fn write_alg_name(f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        f.write_str("AsconXOF")
+        f.write_str("Ascon-XOF128")
     }
 }
 
