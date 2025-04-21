@@ -98,6 +98,11 @@ impl State {
         self.x = apply_permutation!(self.x, 0xb4, 0xa5, 0x96, 0x87, 0x78, 0x69, 0x5a, 0x4b);
     }
 
+    /// Perform permutation with 1 round
+    pub fn permute_1(&mut self) {
+        self.x = round(self.x, 0x4b);
+    }
+
     /// Perform a given number (up to 12) of permutations
     ///
     /// Panics (in debug mode) if `rounds` is larger than 12.
