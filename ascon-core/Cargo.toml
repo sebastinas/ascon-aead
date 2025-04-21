@@ -19,8 +19,8 @@ zeroize = { version = "1.6.0", default-features = false, features = [
 
 [features]
 zeroize = ["dep:zeroize"]
-permute_1 = []
-permute_6 = []
+permute_1 = []            # provide permutation with 1 round
+permute_6 = []            # provide permutation with 6 rounds
 
 [package.metadata.docs.rs]
 rustdoc-args = ["--cfg", "docsrs"]
