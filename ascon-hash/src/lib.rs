@@ -35,12 +35,12 @@ use core::{fmt, marker::PhantomData};
 use ascon_core::State;
 pub use digest::{self, Digest, ExtendableOutput, Reset, Update, XofReader};
 use digest::{
-    HashMarker, Output, OutputSizeUser,
+    CollisionResistance, HashMarker, Output, OutputSizeUser,
     block_api::{
         AlgorithmName, Block, BlockSizeUser, Buffer, BufferKindUser, Eager, ExtendableOutputCore,
         FixedOutputCore, UpdateCore, XofReaderCore,
     },
-    consts::{U8, U32, U40},
+    consts::{U8, U16, U32, U40},
     crypto_common::hazmat::{DeserializeStateError, SerializableState, SerializedState},
 };
 #[cfg(feature="zeroize")]
@@ -325,3 +325,9 @@ digest::buffer_xof!(
     pub struct AsconXof128Reader(AsconXofReaderCore);
     impl: XofReaderTraits;
 );
+
+
+impl CollisionResistance for AsconXof128 {
+    // https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-232.ipd.pdf#table.caption.25
+    type CollisionResistance = U16;
+}
