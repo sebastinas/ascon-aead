@@ -31,4 +31,4 @@ dual licensed as above, without any additional terms or conditions.
 
 [//]: # (general links)
 
-[1]: https://doi.org/10.6028/NIST.SP.800-232.ipd
+[1]: https://doi.org/10.6028/NIST.SP.800-232

@@ -32,4 +32,4 @@ dual licensed as above, without any additional terms or conditions.
 [//]: # (general links)
 
 [1]: https://en.wikipedia.org/wiki/Authenticated_encryption
-[2]: https://doi.org/10.6028/NIST.SP.800-232.ipd
+[2]: https://doi.org/10.6028/NIST.SP.800-232
