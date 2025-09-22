@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.5.2 (2025-09-22)
+
+* Add `TruncatedAsconAead128` variant with support for truncated tags ([#9])
+
+[#9]: https://github.com/sebastinas/ascon-aead/issues/9
+
 ## 0.5.1 (2025-05-21)
 
 * Fix crate metadata
