@@ -1,10 +1,15 @@
 // Copyright 2021-2025 Sebastian Ramacher
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
+use core::marker::PhantomData;
+
 use aead::{
     Error,
-    consts::U16,
-    generic_array::{ArrayLength, GenericArray},
+    consts::{True, U4, U16},
+    generic_array::{
+        ArrayLength, GenericArray,
+        typenum::{IsGreaterOrEqual, IsLessOrEqual, Unsigned},
+    },
 };
 use ascon_core::State;
 use subtle::ConstantTimeEq;
@@ -77,6 +82,12 @@ pub(crate) trait Parameters {
     ///
     /// For internal use-only.
     type KeySize: ArrayLength<u8>;
+    /// Size of the tag
+    ///
+    /// For internal use-only.
+    type TagSize: ArrayLength<u8>
+        + IsLessOrEqual<U16, Output = True>
+        + IsGreaterOrEqual<U4, Output = True>;
     /// Internal storage for secret keys
     ///
     /// For internal use-only.
@@ -89,10 +100,18 @@ pub(crate) trait Parameters {
 }
 
 /// Parameters for Ascon-128
-pub(crate) struct Parameters128;
+pub(crate) struct Parameters128<TagSize>(PhantomData<TagSize>)
+where
+    TagSize:
+        ArrayLength<u8> + IsLessOrEqual<U16, Output = True> + IsGreaterOrEqual<U4, Output = True>;
 
-impl Parameters for Parameters128 {
+impl<TagSize> Parameters for Parameters128<TagSize>
+where
+    TagSize:
+        ArrayLength<u8> + IsLessOrEqual<U16, Output = True> + IsGreaterOrEqual<U4, Output = True>,
+{
     type KeySize = U16;
+    type TagSize = TagSize;
     type InternalKey = InternalKey16;
 
     const IV: u64 = 0x00001000808c0001;
@@ -231,32 +250,33 @@ impl<'a, P: Parameters> AsconCore<'a, P> {
         }
     }
 
-    fn process_final(&mut self) -> [u8; 16] {
+    fn process_final(&mut self) -> GenericArray<u8, P::TagSize> {
         self.state[2] ^= self.key.get_k1();
         self.state[3] ^= self.key.get_k2();
         self.permute_12_and_apply_key();
 
+        // TODO: this could be optimized
         let mut tag = [0u8; 16];
         tag[..8].copy_from_slice(&u64::to_le_bytes(self.state[3]));
         tag[8..].copy_from_slice(&u64::to_le_bytes(self.state[4]));
-        tag
+        GenericArray::from_slice(&tag[..P::TagSize::USIZE]).clone()
     }
 
     pub(crate) fn encrypt_inplace(
         &mut self,
         message: &mut [u8],
         associated_data: &[u8],
-    ) -> GenericArray<u8, U16> {
+    ) -> GenericArray<u8, P::TagSize> {
         self.process_associated_data(associated_data);
         self.process_encrypt_inplace(message);
-        GenericArray::from(self.process_final())
+        self.process_final()
     }
 
     pub(crate) fn decrypt_inplace(
         &mut self,
         ciphertext: &mut [u8],
         associated_data: &[u8],
-        expected_tag: &GenericArray<u8, U16>,
+        expected_tag: &GenericArray<u8, P::TagSize>,
     ) -> Result<(), Error> {
         self.process_associated_data(associated_data);
         self.process_decrypt_inplace(ciphertext);

@@ -100,11 +100,42 @@
 //! [`aead::arrayvec::ArrayVec`]), and enabling the `bytes` feature of this crate will
 //! provide an impl of [`aead::Buffer`] for `bytes::BytesMut` (re-exported from the
 //! [`aead`] crate as [`aead::bytes::BytesMut`]).
+//!
+//! ## Truncated Tags
+//!
+//! Ascon-AEAD128 also supports truncated tags ranging from 32 to 128 bits.
+//! Currently, only byte lengths are supported. Support for truncated tags is
+//! available via [`TruncatedAsconAEAD128`].
+//!
+//! ```
+//! use aead::consts::{U5};
+//! use ascon_aead::{TruncatedAsconAead128, Key, Nonce};
+//! use ascon_aead::aead::{Aead, KeyInit};
+//!
+//! type TruncatedAscon = TruncatedAsconAead128<U5>;
+//! let key = Key::<TruncatedAscon>::from_slice(b"very secret key.");
+//! let cipher = TruncatedAscon::new(key);
+//!
+//! // 128-bits; unique per message
+//! let nonce = Nonce::<TruncatedAscon>::from_slice(b"unique nonce 012");
+//!
+//! let ciphertext = cipher.encrypt(nonce, b"plaintext message".as_ref())
+//!     .expect("encryption failure!"); // NOTE: handle this error to avoid panics!
+//!
+//! let plaintext = cipher.decrypt(nonce, ciphertext.as_ref())
+//!     .expect("decryption failure!"); // NOTE: handle this error to avoid panics!
+//!
+//! assert_eq!(&plaintext, b"plaintext message");
+//! ```
 
 pub use aead::{self, Error, Key, Nonce, Tag};
 use aead::{
     AeadCore, AeadInPlace, KeyInit, KeySizeUser,
-    consts::{U0, U16},
+    consts::{True, U0, U4, U16},
+    generic_array::{
+        ArrayLength,
+        typenum::{IsGreaterOrEqual, IsLessOrEqual},
+    },
 };
 
 mod asconcore;
@@ -134,7 +165,7 @@ impl<P: Parameters> KeyInit for Ascon<P> {
 
 impl<P: Parameters> AeadCore for Ascon<P> {
     type NonceSize = U16;
-    type TagSize = U16;
+    type TagSize = P::TagSize;
     type CiphertextOverhead = U0;
 }
 
@@ -176,7 +207,7 @@ impl<P: Parameters> AeadInPlace for Ascon<P> {
 }
 
 /// Ascon-AEAD128
-pub struct AsconAead128(Ascon<Parameters128>);
+pub struct AsconAead128(Ascon<Parameters128<U16>>);
 /// Key for Ascon-AEAD128
 pub type AsconAead128Key = Key<AsconAead128>;
 /// Nonce for Ascon-AEAD128
@@ -190,7 +221,7 @@ impl KeySizeUser for AsconAead128 {
 
 impl KeyInit for AsconAead128 {
     fn new(key: &Key<Self>) -> Self {
-        Self(Ascon::<Parameters128>::new(key))
+        Self(Ascon::new(key))
     }
 }
 
@@ -201,6 +232,77 @@ impl AeadCore for AsconAead128 {
 }
 
 impl AeadInPlace for AsconAead128 {
+    #[inline(always)]
+    fn encrypt_in_place_detached(
+        &self,
+        nonce: &Nonce<Self>,
+        associated_data: &[u8],
+        buffer: &mut [u8],
+    ) -> Result<Tag<Self>, Error> {
+        self.0
+            .encrypt_in_place_detached(nonce, associated_data, buffer)
+    }
+
+    #[inline(always)]
+    fn decrypt_in_place_detached(
+        &self,
+        nonce: &Nonce<Self>,
+        associated_data: &[u8],
+        buffer: &mut [u8],
+        tag: &Tag<Self>,
+    ) -> Result<(), Error> {
+        self.0
+            .decrypt_in_place_detached(nonce, associated_data, buffer, tag)
+    }
+}
+
+/// Truncated Ascon-AEAD128
+///
+/// Tag sizes of 4 to 16 bytes are supported.
+pub struct TruncatedAsconAead128<TagSize = U16>(Ascon<Parameters128<TagSize>>)
+where
+    TagSize:
+        ArrayLength<u8> + IsLessOrEqual<U16, Output = True> + IsGreaterOrEqual<U4, Output = True>;
+/// Key for Truncated Ascon-AEAD128
+pub type TruncatedAsconAead128Key<TagSize = U16> = Key<TruncatedAsconAead128<TagSize>>;
+/// Nonce for Truncated Ascon-AEAD128
+pub type TruncatedAsconAead128Nonce<TagSize = U16> = Nonce<TruncatedAsconAead128<TagSize>>;
+/// Tag for Truncated  Ascon-AEAD128
+pub type TruncatedAsconAead128Tag<TagSize = U16> = Tag<TruncatedAsconAead128<TagSize>>;
+
+impl<TagSize> KeySizeUser for TruncatedAsconAead128<TagSize>
+where
+    TagSize:
+        ArrayLength<u8> + IsLessOrEqual<U16, Output = True> + IsGreaterOrEqual<U4, Output = True>,
+{
+    type KeySize = U16;
+}
+
+impl<TagSize> KeyInit for TruncatedAsconAead128<TagSize>
+where
+    TagSize:
+        ArrayLength<u8> + IsLessOrEqual<U16, Output = True> + IsGreaterOrEqual<U4, Output = True>,
+{
+    fn new(key: &Key<Self>) -> Self {
+        Self(Ascon::new(key))
+    }
+}
+
+impl<TagSize> AeadCore for TruncatedAsconAead128<TagSize>
+where
+    TagSize:
+        ArrayLength<u8> + IsLessOrEqual<U16, Output = True> + IsGreaterOrEqual<U4, Output = True>,
+{
+    type NonceSize = U16;
+    type TagSize = TagSize;
+    type CiphertextOverhead = U0;
+}
+
+impl<TagSize> AeadInPlace for TruncatedAsconAead128<TagSize>
+where
+    TagSize:
+        ArrayLength<u8> + IsLessOrEqual<U16, Output = True> + IsGreaterOrEqual<U4, Output = True>,
+{
     #[inline(always)]
     fn encrypt_in_place_detached(
         &self,
