@@ -57,7 +57,7 @@
 //! This crate has an optional `alloc` feature which can be disabled in e.g.
 //! microcontroller environments that don't have a heap.
 //!
-//! The [`AeadInPlace::encrypt_in_place`] and [`AeadInPlace::decrypt_in_place`]
+//! The [`AeadInOut::encrypt_in_place`] and [`AeadInOut::decrypt_in_place`]
 //! methods accept any type that impls the [`aead::Buffer`] trait which
 //! contains the plaintext for encryption or ciphertext for decryption.
 //!
@@ -70,7 +70,7 @@
 //! ```
 //! # #[cfg(feature = "heapless")] {
 //! use ascon_aead::{AsconAead128, AsconAead128Key, AsconAead128Nonce, Key, Nonce};
-//! use ascon_aead::aead::{AeadInPlace, KeyInit};
+//! use ascon_aead::aead::{AeadInOut, KeyInit};
 //! use ascon_aead::aead::heapless::Vec;
 //!
 //! let key = AsconAead128Key::from_slice(b"very secret key.");
@@ -130,12 +130,13 @@
 
 pub use aead::{self, Error, Key, Nonce, Tag};
 use aead::{
-    AeadCore, AeadInPlace, KeyInit, KeySizeUser,
-    consts::{True, U0, U4, U16},
-    generic_array::{
-        ArrayLength,
+    AeadCore, AeadInOut, KeyInit, KeySizeUser, TagPosition,
+    array::{
+        ArraySize,
         typenum::{IsGreaterOrEqual, IsLessOrEqual},
     },
+    consts::{True, U4, U16},
+    inout::InOutBuf,
 };
 
 mod asconcore;
@@ -166,15 +167,15 @@ impl<P: Parameters> KeyInit for Ascon<P> {
 impl<P: Parameters> AeadCore for Ascon<P> {
     type NonceSize = U16;
     type TagSize = P::TagSize;
-    type CiphertextOverhead = U0;
+    const TAG_POSITION: TagPosition = TagPosition::Postfix;
 }
 
-impl<P: Parameters> AeadInPlace for Ascon<P> {
-    fn encrypt_in_place_detached(
+impl<P: Parameters> AeadInOut for Ascon<P> {
+    fn encrypt_inout_detached(
         &self,
         nonce: &Nonce<Self>,
         associated_data: &[u8],
-        buffer: &mut [u8],
+        buffer: InOutBuf<'_, '_, u8>,
     ) -> Result<Tag<Self>, Error> {
         if (buffer.len() as u64)
             .checked_add(associated_data.len() as u64)
@@ -184,14 +185,14 @@ impl<P: Parameters> AeadInPlace for Ascon<P> {
         }
 
         let mut core = AsconCore::<P>::new(&self.key, nonce);
-        Ok(core.encrypt_inplace(buffer, associated_data))
+        Ok(core.encrypt_inout(buffer, associated_data))
     }
 
-    fn decrypt_in_place_detached(
+    fn decrypt_inout_detached(
         &self,
         nonce: &Nonce<Self>,
         associated_data: &[u8],
-        buffer: &mut [u8],
+        buffer: InOutBuf<'_, '_, u8>,
         tag: &Tag<Self>,
     ) -> Result<(), Error> {
         if (buffer.len() as u64)
@@ -202,7 +203,7 @@ impl<P: Parameters> AeadInPlace for Ascon<P> {
         }
 
         let mut core = AsconCore::<P>::new(&self.key, nonce);
-        core.decrypt_inplace(buffer, associated_data, tag)
+        core.decrypt_inout(buffer, associated_data, tag)
     }
 }
 
@@ -228,31 +229,31 @@ impl KeyInit for AsconAead128 {
 impl AeadCore for AsconAead128 {
     type NonceSize = U16;
     type TagSize = U16;
-    type CiphertextOverhead = U0;
+    const TAG_POSITION: TagPosition = TagPosition::Postfix;
 }
 
-impl AeadInPlace for AsconAead128 {
+impl AeadInOut for AsconAead128 {
     #[inline(always)]
-    fn encrypt_in_place_detached(
+    fn encrypt_inout_detached(
         &self,
         nonce: &Nonce<Self>,
         associated_data: &[u8],
-        buffer: &mut [u8],
+        buffer: InOutBuf<'_, '_, u8>,
     ) -> Result<Tag<Self>, Error> {
         self.0
-            .encrypt_in_place_detached(nonce, associated_data, buffer)
+            .encrypt_inout_detached(nonce, associated_data, buffer)
     }
 
     #[inline(always)]
-    fn decrypt_in_place_detached(
+    fn decrypt_inout_detached(
         &self,
         nonce: &Nonce<Self>,
         associated_data: &[u8],
-        buffer: &mut [u8],
+        buffer: InOutBuf<'_, '_, u8>,
         tag: &Tag<Self>,
     ) -> Result<(), Error> {
         self.0
-            .decrypt_in_place_detached(nonce, associated_data, buffer, tag)
+            .decrypt_inout_detached(nonce, associated_data, buffer, tag)
     }
 }
 
@@ -261,8 +262,7 @@ impl AeadInPlace for AsconAead128 {
 /// Tag sizes of 4 to 16 bytes are supported.
 pub struct TruncatedAsconAead128<TagSize = U16>(Ascon<Parameters128<TagSize>>)
 where
-    TagSize:
-        ArrayLength<u8> + IsLessOrEqual<U16, Output = True> + IsGreaterOrEqual<U4, Output = True>;
+    TagSize: ArraySize + IsLessOrEqual<U16, Output = True> + IsGreaterOrEqual<U4, Output = True>;
 /// Key for Truncated Ascon-AEAD128
 pub type TruncatedAsconAead128Key<TagSize = U16> = Key<TruncatedAsconAead128<TagSize>>;
 /// Nonce for Truncated Ascon-AEAD128
@@ -272,16 +272,14 @@ pub type TruncatedAsconAead128Tag<TagSize = U16> = Tag<TruncatedAsconAead128<Tag
 
 impl<TagSize> KeySizeUser for TruncatedAsconAead128<TagSize>
 where
-    TagSize:
-        ArrayLength<u8> + IsLessOrEqual<U16, Output = True> + IsGreaterOrEqual<U4, Output = True>,
+    TagSize: ArraySize + IsLessOrEqual<U16, Output = True> + IsGreaterOrEqual<U4, Output = True>,
 {
     type KeySize = U16;
 }
 
 impl<TagSize> KeyInit for TruncatedAsconAead128<TagSize>
 where
-    TagSize:
-        ArrayLength<u8> + IsLessOrEqual<U16, Output = True> + IsGreaterOrEqual<U4, Output = True>,
+    TagSize: ArraySize + IsLessOrEqual<U16, Output = True> + IsGreaterOrEqual<U4, Output = True>,
 {
     fn new(key: &Key<Self>) -> Self {
         Self(Ascon::new(key))
@@ -290,39 +288,37 @@ where
 
 impl<TagSize> AeadCore for TruncatedAsconAead128<TagSize>
 where
-    TagSize:
-        ArrayLength<u8> + IsLessOrEqual<U16, Output = True> + IsGreaterOrEqual<U4, Output = True>,
+    TagSize: ArraySize + IsLessOrEqual<U16, Output = True> + IsGreaterOrEqual<U4, Output = True>,
 {
     type NonceSize = U16;
     type TagSize = TagSize;
-    type CiphertextOverhead = U0;
+    const TAG_POSITION: TagPosition = TagPosition::Postfix;
 }
 
-impl<TagSize> AeadInPlace for TruncatedAsconAead128<TagSize>
+impl<TagSize> AeadInOut for TruncatedAsconAead128<TagSize>
 where
-    TagSize:
-        ArrayLength<u8> + IsLessOrEqual<U16, Output = True> + IsGreaterOrEqual<U4, Output = True>,
+    TagSize: ArraySize + IsLessOrEqual<U16, Output = True> + IsGreaterOrEqual<U4, Output = True>,
 {
     #[inline(always)]
-    fn encrypt_in_place_detached(
+    fn encrypt_inout_detached(
         &self,
         nonce: &Nonce<Self>,
         associated_data: &[u8],
-        buffer: &mut [u8],
+        buffer: InOutBuf<'_, '_, u8>,
     ) -> Result<Tag<Self>, Error> {
         self.0
-            .encrypt_in_place_detached(nonce, associated_data, buffer)
+            .encrypt_inout_detached(nonce, associated_data, buffer)
     }
 
     #[inline(always)]
-    fn decrypt_in_place_detached(
+    fn decrypt_inout_detached(
         &self,
         nonce: &Nonce<Self>,
         associated_data: &[u8],
-        buffer: &mut [u8],
+        buffer: InOutBuf<'_, '_, u8>,
         tag: &Tag<Self>,
     ) -> Result<(), Error> {
         self.0
-            .decrypt_in_place_detached(nonce, associated_data, buffer, tag)
+            .decrypt_inout_detached(nonce, associated_data, buffer, tag)
     }
 }

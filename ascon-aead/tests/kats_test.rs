@@ -8,7 +8,7 @@ use spectral::prelude::{OrderedAssertions, ResultAssertions, asserting};
 
 use ascon_aead::{
     AsconAead128, Key, Nonce, Tag,
-    aead::{Aead, AeadInPlace, KeyInit, Payload},
+    aead::{Aead, AeadInOut, KeyInit, Payload},
 };
 
 #[derive(Debug)]
@@ -41,12 +41,12 @@ impl TestVector {
     }
 }
 
-fn run_tv<A: KeyInit + AeadInPlace>(tv: TestVector) {
-    let core = A::new(Key::<A>::from_slice(&tv.key));
-    let nonce = Nonce::<A>::from_slice(&tv.nonce);
+fn run_tv<A: KeyInit + AeadInOut>(tv: TestVector) {
+    let core = A::new(&Key::<A>::try_from(tv.key.as_slice()).unwrap());
+    let nonce = Nonce::<A>::try_from(tv.nonce.as_slice()).unwrap();
     asserting(format!("Test Vector {} encryption", tv.count).as_str())
         .that(&core.encrypt(
-            nonce,
+            &nonce,
             Payload {
                 msg: &tv.plaintext,
                 aad: &tv.associated_data,
@@ -57,7 +57,7 @@ fn run_tv<A: KeyInit + AeadInPlace>(tv: TestVector) {
 
     asserting(format!("Test Vector {} decryption", tv.count).as_str())
         .that(&core.decrypt(
-            nonce,
+            &nonce,
             Payload {
                 msg: &tv.ciphertext,
                 aad: &tv.associated_data,
@@ -68,7 +68,12 @@ fn run_tv<A: KeyInit + AeadInPlace>(tv: TestVector) {
 
     let bad_tag = Tag::<A>::default();
     let mut buf = tv.ciphertext[..tv.ciphertext.len() - bad_tag.len()].to_vec();
-    let res = core.decrypt_in_place_detached(nonce, &tv.associated_data, &mut buf, &bad_tag);
+    let res = core.decrypt_inout_detached(
+        &nonce,
+        &tv.associated_data,
+        buf.as_mut_slice().into(),
+        &bad_tag,
+    );
     assert!(res.is_err());
     assert!(buf.iter().all(|b| *b == 0));
 }

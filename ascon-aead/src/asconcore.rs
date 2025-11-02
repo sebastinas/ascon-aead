@@ -1,18 +1,18 @@
 // Copyright 2021-2025 Sebastian Ramacher
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
-use core::marker::PhantomData;
+use core::{cmp::min, marker::PhantomData};
 
 use aead::{
     Error,
-    consts::{True, U4, U16},
-    generic_array::{
-        ArrayLength, GenericArray,
+    array::{
+        Array, ArraySize,
         typenum::{IsGreaterOrEqual, IsLessOrEqual, Unsigned},
     },
+    consts::{True, U4, U16},
+    inout::InOutBuf,
 };
 use ascon_core::State;
-use inout::InOutBuf;
 use subtle::ConstantTimeEq;
 
 /// Produce mask for padding.
@@ -46,8 +46,8 @@ fn u64_from_bytes_partial(input: &[u8]) -> u64 {
 /// Helper trait for handling differences in key usage of Ascon-128
 ///
 /// For internal use-only.
-pub(crate) trait InternalKey<KS: ArrayLength<u8>>:
-    Sized + Clone + for<'a> From<&'a GenericArray<u8, KS>>
+pub(crate) trait InternalKey<KS: ArraySize>:
+    Sized + Clone + for<'a> From<&'a Array<u8, KS>>
 {
     /// Return K1.
     fn get_k1(&self) -> u64;
@@ -71,8 +71,8 @@ impl InternalKey<U16> for InternalKey16 {
     }
 }
 
-impl From<&GenericArray<u8, U16>> for InternalKey16 {
-    fn from(key: &GenericArray<u8, U16>) -> Self {
+impl From<&Array<u8, U16>> for InternalKey16 {
+    fn from(key: &Array<u8, U16>) -> Self {
         Self(u64_from_bytes(&key[..8]), u64_from_bytes(&key[8..]))
     }
 }
@@ -82,11 +82,11 @@ pub(crate) trait Parameters {
     /// Size of the secret key
     ///
     /// For internal use-only.
-    type KeySize: ArrayLength<u8>;
+    type KeySize: ArraySize;
     /// Size of the tag
     ///
     /// For internal use-only.
-    type TagSize: ArrayLength<u8>
+    type TagSize: ArraySize
         + IsLessOrEqual<U16, Output = True>
         + IsGreaterOrEqual<U4, Output = True>;
     /// Internal storage for secret keys
@@ -103,13 +103,11 @@ pub(crate) trait Parameters {
 /// Parameters for Ascon-128
 pub(crate) struct Parameters128<TagSize>(PhantomData<TagSize>)
 where
-    TagSize:
-        ArrayLength<u8> + IsLessOrEqual<U16, Output = True> + IsGreaterOrEqual<U4, Output = True>;
+    TagSize: ArraySize + IsLessOrEqual<U16, Output = True> + IsGreaterOrEqual<U4, Output = True>;
 
 impl<TagSize> Parameters for Parameters128<TagSize>
 where
-    TagSize:
-        ArrayLength<u8> + IsLessOrEqual<U16, Output = True> + IsGreaterOrEqual<U4, Output = True>,
+    TagSize: ArraySize + IsLessOrEqual<U16, Output = True> + IsGreaterOrEqual<U4, Output = True>,
 {
     type KeySize = U16;
     type TagSize = TagSize;
@@ -125,7 +123,7 @@ pub(crate) struct AsconCore<'a, P: Parameters> {
 }
 
 impl<'a, P: Parameters> AsconCore<'a, P> {
-    pub(crate) fn new(internal_key: &'a P::InternalKey, nonce: &GenericArray<u8, U16>) -> Self {
+    pub(crate) fn new(internal_key: &'a P::InternalKey, nonce: &Array<u8, U16>) -> Self {
         let mut state = State::new(
             P::IV,
             internal_key.get_k1(),
@@ -256,42 +254,45 @@ impl<'a, P: Parameters> AsconCore<'a, P> {
         }
     }
 
-    fn process_final(&mut self) -> GenericArray<u8, P::TagSize> {
+    fn process_final(&mut self) -> Array<u8, P::TagSize> {
         self.state[2] ^= self.key.get_k1();
         self.state[3] ^= self.key.get_k2();
         self.permute_12_and_apply_key();
 
-        // TODO: this could be optimized
-        let mut tag = [0u8; 16];
-        tag[..8].copy_from_slice(&u64::to_le_bytes(self.state[3]));
-        tag[8..].copy_from_slice(&u64::to_le_bytes(self.state[4]));
-        GenericArray::from_slice(&tag[..P::TagSize::USIZE]).clone()
+        let mut tag = Array::default();
+        tag[..min(8, P::TagSize::USIZE)]
+            .copy_from_slice(&u64::to_le_bytes(self.state[3])[..min(8, P::TagSize::USIZE)]);
+        if P::TagSize::USIZE > 8 {
+            tag[8..min(16, P::TagSize::USIZE)]
+                .copy_from_slice(&u64::to_le_bytes(self.state[4])[..min(8, P::TagSize::USIZE - 8)]);
+        }
+        tag
     }
 
-    pub(crate) fn encrypt_inplace(
+    pub(crate) fn encrypt_inout(
         &mut self,
-        message: &mut [u8],
+        message: InOutBuf<'_, '_, u8>,
         associated_data: &[u8],
-    ) -> GenericArray<u8, P::TagSize> {
+    ) -> Array<u8, P::TagSize> {
         self.process_associated_data(associated_data);
-        self.process_encrypt_inout(message.into());
+        self.process_encrypt_inout(message);
         self.process_final()
     }
 
-    pub(crate) fn decrypt_inplace(
+    pub(crate) fn decrypt_inout(
         &mut self,
-        ciphertext: &mut [u8],
+        mut ciphertext: InOutBuf<'_, '_, u8>,
         associated_data: &[u8],
-        expected_tag: &GenericArray<u8, P::TagSize>,
+        expected_tag: &Array<u8, P::TagSize>,
     ) -> Result<(), Error> {
         self.process_associated_data(associated_data);
-        self.process_decrypt_inout(ciphertext.into());
+        self.process_decrypt_inout(ciphertext.reborrow());
 
         let tag = self.process_final();
         if bool::from(tag.ct_eq(expected_tag)) {
             Ok(())
         } else {
-            ciphertext.fill(0);
+            ciphertext.get_out().fill(0);
             Err(Error)
         }
     }

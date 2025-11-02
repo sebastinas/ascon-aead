@@ -13,7 +13,7 @@ categories = ["cryptography", "no-std"]
 rust-version = "1.85"
 
 [dependencies]
-aead = { version = "0.5", default-features = false }
+aead = { version = "0.6.0-rc.2", default-features = false }
 subtle = { version = "2", default-features = false }
 zeroize = { version = "1.5", optional = true, default-features = false, features = [
     "derive",
@@ -23,19 +23,18 @@ inout = { version = "0.2", default-features = false }
 
 [dev-dependencies]
 hex = "0.4"
-aead = { version = "0.5", features = ["alloc"] }
+aead = { version = "0.6.0-rc.2", features = ["alloc"] }
 spectral = { version = "0.6", default-features = false }
 
 [features]
-default = ["alloc", "getrandom", "dep:zeroize"]
-std = ["aead/std", "alloc"]
+default = ["std", "os_rng", "dep:zeroize"]
+std = ["alloc"]
 alloc = ["aead/alloc"]
 arrayvec = ["aead/arrayvec"]
 bytes = ["aead/bytes"]
-getrandom = ["aead/getrandom", "rand_core"]
+os_rng = ["aead/os_rng", "rand_core"]
 heapless = ["aead/heapless"]
 rand_core = ["aead/rand_core"]
-stream = ["aead/stream"]
 zeroize = ["ascon-core/zeroize"]
 
 [package.metadata.docs.rs]
