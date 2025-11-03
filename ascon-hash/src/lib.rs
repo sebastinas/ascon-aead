@@ -33,6 +33,8 @@
 use core::{fmt, marker::PhantomData};
 
 use ascon_core::State;
+#[cfg(feature = "zeroize")]
+use digest::zeroize::ZeroizeOnDrop;
 pub use digest::{self, Digest, ExtendableOutput, Reset, Update, XofReader};
 use digest::{
     CollisionResistance, HashMarker, Output, OutputSizeUser,
@@ -43,8 +45,6 @@ use digest::{
     consts::{U8, U16, U32, U40},
     crypto_common::hazmat::{DeserializeStateError, SerializableState, SerializedState},
 };
-#[cfg(feature="zeroize")]
-use digest::zeroize::ZeroizeOnDrop;
 
 /// Produce mask for padding.
 #[inline(always)]
@@ -98,7 +98,7 @@ struct HashCore<P: HashParameters> {
     phantom: PhantomData<P>,
 }
 
-#[cfg(feature="zeroize")]
+#[cfg(feature = "zeroize")]
 impl<P: HashParameters> ZeroizeOnDrop for HashCore<P> {}
 
 impl<P: HashParameters> HashCore<P> {
@@ -160,7 +160,7 @@ pub struct AsconCore {
     state: HashCore<Parameters>,
 }
 
-#[cfg(feature="zeroize")]
+#[cfg(feature = "zeroize")]
 impl ZeroizeOnDrop for AsconCore {}
 
 impl HashMarker for AsconCore {}
@@ -325,7 +325,6 @@ digest::buffer_xof!(
     pub struct AsconXof128Reader(AsconXofReaderCore);
     impl: XofReaderTraits;
 );
-
 
 impl CollisionResistance for AsconXof128 {
     // https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-232.pdf#table.caption.24
