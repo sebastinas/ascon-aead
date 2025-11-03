@@ -12,6 +12,13 @@ use core::{
     ops::{Index, IndexMut},
 };
 
+/// The size of 64 bit word.
+const WORD_SIZE: usize = size_of::<u64>();
+/// The size of the Ascon state in number of 64 bit words.
+const STATE_WORDS: usize = 5;
+/// The size of the Ascon state in number of bytes.
+const STATE_SIZE: usize = WORD_SIZE * STATE_WORDS;
+
 #[cfg(feature = "zeroize")]
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
@@ -44,11 +51,11 @@ macro_rules! apply_permutation {
 #[derive(Clone, Debug, Default)]
 #[cfg_attr(feature = "zeroize", derive(Zeroize, ZeroizeOnDrop))]
 pub struct State {
-    x: [u64; 5],
+    x: [u64; STATE_WORDS],
 }
 
 /// Ascon's round function
-const fn round(x: [u64; 5], c: u64) -> [u64; 5] {
+const fn round(x: [u64; STATE_WORDS], c: u64) -> [u64; STATE_WORDS] {
     // S-box layer
     let x0 = x[0] ^ x[4];
     let x2 = x[2] ^ x[1] ^ c; // with round constant
@@ -123,10 +130,10 @@ impl State {
     }
 
     /// Convert state to bytes.
-    pub fn as_bytes(&self) -> [u8; 40] {
-        let mut bytes = [0u8; size_of::<u64>() * 5];
+    pub fn as_bytes(&self) -> [u8; STATE_SIZE] {
+        let mut bytes = [0u8; STATE_SIZE];
         for (dst, src) in bytes
-            .chunks_exact_mut(size_of::<u64>())
+            .chunks_exact_mut(WORD_SIZE)
             .zip(self.x.into_iter())
         {
             dst.copy_from_slice(&u64::to_be_bytes(src));
@@ -156,14 +163,14 @@ impl TryFrom<&[u64]> for State {
 
     fn try_from(value: &[u64]) -> Result<Self, Self::Error> {
         match value.len() {
-            5 => Ok(Self::new(value[0], value[1], value[2], value[3], value[4])),
+            STATE_WORDS => Ok(Self::new(value[0], value[1], value[2], value[3], value[4])),
             _ => Err(()),
         }
     }
 }
 
-impl From<&[u64; 5]> for State {
-    fn from(value: &[u64; 5]) -> Self {
+impl From<&[u64; STATE_WORDS]> for State {
+    fn from(value: &[u64; STATE_WORDS]) -> Self {
         Self { x: *value }
     }
 }
@@ -172,13 +179,13 @@ impl TryFrom<&[u8]> for State {
     type Error = ();
 
     fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
-        if value.len() != core::mem::size_of::<u64>() * 5 {
+        if value.len() != STATE_SIZE {
             return Err(());
         }
 
         let mut state = Self::default();
         for (src, dst) in value
-            .chunks_exact(core::mem::size_of::<u64>())
+            .chunks_exact(WORD_SIZE)
             .zip(state.x.iter_mut())
         {
             *dst = u64::from_be_bytes(src.try_into().unwrap());
@@ -187,11 +194,11 @@ impl TryFrom<&[u8]> for State {
     }
 }
 
-impl From<&[u8; size_of::<u64>() * 5]> for State {
-    fn from(value: &[u8; size_of::<u64>() * 5]) -> Self {
+impl From<&[u8; STATE_SIZE]> for State {
+    fn from(value: &[u8; STATE_SIZE]) -> Self {
         let mut state = Self::default();
         for (src, dst) in value
-            .chunks_exact(core::mem::size_of::<u64>())
+            .chunks_exact(WORD_SIZE)
             .zip(state.x.iter_mut())
         {
             *dst = u64::from_be_bytes(src.try_into().unwrap());
