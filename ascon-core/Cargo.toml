@@ -23,7 +23,7 @@ permute_1 = []            # provide permutation with 1 round
 permute_6 = []            # provide permutation with 6 rounds
 
 [package.metadata.docs.rs]
-rustdoc-args = ["--cfg", "docsrs"]
+all-features = true
 
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = [
