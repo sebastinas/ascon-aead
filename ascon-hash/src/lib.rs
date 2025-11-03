@@ -328,6 +328,6 @@ digest::buffer_xof!(
 
 
 impl CollisionResistance for AsconXof128 {
-    // https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-232.ipd.pdf#table.caption.25
+    // https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-232.pdf#table.caption.24
     type CollisionResistance = U16;
 }
