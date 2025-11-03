@@ -232,6 +232,9 @@ pub struct AsconXofCore {
     state: HashCore<ParametersXof>,
 }
 
+#[cfg(feature = "zeroize")]
+impl ZeroizeOnDrop for AsconXofCore {}
+
 impl HashMarker for AsconXofCore {}
 
 impl BlockSizeUser for AsconXofCore {
@@ -255,6 +258,9 @@ impl UpdateCore for AsconXofCore {
 pub struct AsconXofReaderCore {
     hasher: HashCore<ParametersXof>,
 }
+
+#[cfg(feature = "zeroize")]
+impl ZeroizeOnDrop for AsconXofReaderCore {}
 
 impl BlockSizeUser for AsconXofReaderCore {
     type BlockSize = U8;
