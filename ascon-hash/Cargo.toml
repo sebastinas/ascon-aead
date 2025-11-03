@@ -13,7 +13,7 @@ categories = ["cryptography", "no-std"]
 rust-version = "1.85"
 
 [dependencies]
-digest = { version = "0.10", default-features = false, features = ["core-api"] }
+digest = "0.11.0-rc.3"
 ascon-core = { version = "0.5", path = "../ascon-core", default-features = false }
 
 [dev-dependencies]
@@ -22,9 +22,8 @@ hex = "0.4"
 
 [features]
 alloc = ["digest/alloc"]
-default = ["std"]
-std = ["digest/std", "alloc"]
-zeroize = ["ascon-core/zeroize"]
+default = ["alloc"]
+zeroize = ["ascon-core/zeroize", "digest/zeroize"]
 
 [package.metadata.docs.rs]
 all-features = true
