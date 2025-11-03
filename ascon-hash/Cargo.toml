@@ -1,6 +1,6 @@
 [package]
 name = "ascon-hash"
-version = "0.3.1"
+version = "0.4.0-pre.1"
 description = "Implementation of Ascon-Hash256 and Ascon-XOF128"
 authors = ["Sebastian Ramacher <sebastian.ramacher@ait.ac.at>"]
 license = "Apache-2.0 OR MIT"

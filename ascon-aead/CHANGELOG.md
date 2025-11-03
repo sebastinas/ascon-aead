@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.6.0-pre.1 (2025-11-03)
+
+* Pre-release updated for `aead 0.6.0-rc.2`
+
 ## 0.5.2 (2025-09-22)
 
 * Add `TruncatedAsconAead128` variant with support for truncated tags ([#9])
