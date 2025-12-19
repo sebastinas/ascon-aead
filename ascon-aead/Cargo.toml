@@ -33,7 +33,8 @@ alloc = ["aead/alloc"]
 arrayvec = ["aead/arrayvec"]
 bytes = ["aead/bytes"]
 getrandom = ["aead/getrandom"]
-heapless = ["aead/heapless"]
+# will be added back to aead in 0.6.1
+# heapless = ["aead/heapless"]
 zeroize = ["ascon-core/zeroize"]
 
 [package.metadata.docs.rs]

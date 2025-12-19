@@ -63,41 +63,7 @@
 //! methods accept any type that impls the [`aead::Buffer`] trait which
 //! contains the plaintext for encryption or ciphertext for decryption.
 //!
-//! Note that if you enable the `heapless` feature of this crate,
-//! you will receive an impl of [`aead::Buffer`] for `heapless::Vec`
-//! (re-exported from the [`aead`] crate as [`aead::heapless::Vec`]),
-//! which can then be passed as the `buffer` parameter to the in-place encrypt
-//! and decrypt methods:
-//!
-//! ```
-//! # #[cfg(feature = "heapless")] {
-//! use ascon_aead::{AsconAead128, AsconAead128Key, AsconAead128Nonce, Key, Nonce};
-//! use ascon_aead::aead::{AeadInOut, KeyInit};
-//! use ascon_aead::aead::heapless::Vec;
-//!
-//! let key = AsconAead128Key::from_slice(b"very secret key.");
-//! let cipher = AsconAead128::new(key);
-//!
-//! // 128-bits; unique per message
-//! let nonce = AsconAead128Nonce::from_slice(b"unique nonce 012");
-//!
-//! // Buffer needs 16-bytes overhead for authentication tag
-//! let mut buffer: Vec<u8, 128> = Vec::new();
-//! buffer.extend_from_slice(b"plaintext message");
-//!
-//! // Encrypt `buffer` in-place, replacing the plaintext contents with ciphertext
-//! cipher.encrypt_in_place(nonce, b"", &mut buffer).expect("encryption failure!");
-//!
-//! // `buffer` now contains the message ciphertext
-//! assert_ne!(&buffer, b"plaintext message");
-//!
-//! // Decrypt `buffer` in-place, replacing its ciphertext context with the original plaintext
-//! cipher.decrypt_in_place(nonce, b"", &mut buffer).expect("decryption failure!");
-//! assert_eq!(&buffer, b"plaintext message");
-//! # }
-//! ```
-//!
-//! Similarly, enabling the `arrayvec` feature of this crate will provide an impl of
+//! Enabling the `arrayvec` feature of this crate will provide an impl of
 //! [`aead::Buffer`] for `arrayvec::ArrayVec` (re-exported from the [`aead`] crate as
 //! [`aead::arrayvec::ArrayVec`]), and enabling the `bytes` feature of this crate will
 //! provide an impl of [`aead::Buffer`] for `bytes::BytesMut` (re-exported from the
