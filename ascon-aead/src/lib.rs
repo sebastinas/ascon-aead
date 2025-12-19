@@ -34,13 +34,15 @@
 //! ```
 //! # #[cfg(feature = "getrandom")] {
 //! use ascon_aead::AsconAead128;
-//! use ascon_aead::aead::{Aead, AeadCore, KeyInit, OsRng};
+//! use ascon_aead::aead::{Aead, AeadCore, KeyInit};
 //!
-//! let key = AsconAead128::generate_key(&mut OsRng);
+//! let key = AsconAead128::generate_key()
+//!     .expect("key generation failure"); // NOTE: handle this error to avoid panics!
 //! let cipher = AsconAead128::new(&key);
 //!
 //! // 128 bits; unique per message
-//! let nonce = AsconAead128::generate_nonce(&mut OsRng);
+//! let nonce = AsconAead128::generate_nonce()
+//!     .expect("nonce generation failure"); // NOTE: handle this error to avoid panics!
 //!
 //! let ciphertext = cipher.encrypt(&nonce, b"plaintext message".as_ref())
 //!     .expect("encryption failure!"); // NOTE: handle this error to avoid panics!
