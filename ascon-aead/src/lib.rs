@@ -114,7 +114,7 @@ use asconcore::{AsconCore, Parameters, Parameters128};
 /// Ascon generic over some Parameters
 ///
 /// This type is generic to support substituting various Ascon parameter sets. It is not intended to
-/// be uses directly. Use the [`AsconAead128`] type aliases instead.
+/// be used directly. Use the [`AsconAead128`] type aliases instead.
 #[derive(Clone)]
 struct Ascon<P: Parameters> {
     key: P::InternalKey,
