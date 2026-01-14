@@ -1,15 +1,13 @@
 // Copyright 2022 Sebastian Ramacher
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
-use std::collections::HashMap;
-use std::include_str;
-
-use spectral::prelude::{OrderedAssertions, ResultAssertions, asserting};
+use std::{collections::HashMap, include_str};
 
 use ascon_aead::{
     AsconAead128, Key, Nonce, Tag,
     aead::{Aead, AeadInOut, KeyInit, Payload},
 };
+use spectral::prelude::{OrderedAssertions, ResultAssertions, asserting};
 
 #[derive(Debug)]
 struct TestVector {
