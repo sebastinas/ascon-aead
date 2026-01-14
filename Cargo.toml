@@ -1,3 +1,3 @@
 [workspace]
-members = ["ascon-core", "ascon-aead", "ascon-hash"]
+members = ["ascon-core", "ascon-aead", "ascon-hash", "ascon-benches"]
 resolver = "3"

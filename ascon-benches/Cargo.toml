@@ -1,0 +1,32 @@
+[package]
+name = "ascon-benches"
+version = "0.1.0"
+publish = false
+license = "Apache-2.0 OR MIT"
+edition = "2024"
+rust-version = "1.86"
+
+[dependencies]
+ascon-aead = { path = "../ascon-aead" }
+ascon-hash = { path = "../ascon-hash" }
+
+[dev-dependencies]
+rand = "0.8"
+criterion = "0.8"
+
+[lib]
+test = false
+doc = false
+doctest = false
+
+[[bench]]
+name = "ascon-aead-bench"
+path = "benches/aead.rs"
+harness = false
+test = false
+
+[[bench]]
+name = "ascon-hash-bench"
+path = "benches/hash.rs"
+harness = false
+test = false
