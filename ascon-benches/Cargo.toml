@@ -7,7 +7,7 @@ edition = "2024"
 rust-version = "1.86"
 
 [dependencies]
-ascon-aead = { path = "../ascon-aead" }
+ascon-aead = { path = "../ascon-aead", features = ["getrandom", "rand_core"] }
 ascon-hash = { path = "../ascon-hash" }
 
 [dev-dependencies]

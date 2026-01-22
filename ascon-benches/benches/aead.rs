@@ -5,7 +5,7 @@ use std::hint::black_box;
 
 use ascon_aead::{
     AsconAead128,
-    aead::{Aead, AeadInOut, KeyInit, array::typenum::Unsigned},
+    aead::{Aead, AeadInOut, Generate, Key, KeyInit, Nonce},
 };
 use criterion::{Bencher, BenchmarkId, Criterion, Throughput, criterion_group, criterion_main};
 use rand::RngCore;
@@ -13,17 +13,14 @@ use rand::RngCore;
 const KB: usize = 1024;
 
 fn bench_for_size<A: KeyInit + Aead>(b: &mut Bencher, rng: &mut dyn RngCore, size: usize) {
-    let mut key = vec![0u8; A::KeySize::USIZE];
-    rng.fill_bytes(key.as_mut_slice());
-    let mut nonce = vec![0u8; A::NonceSize::USIZE];
-    rng.fill_bytes(nonce.as_mut_slice());
     let mut plaintext = vec![0u8; size];
     rng.fill_bytes(plaintext.as_mut_slice());
 
-    let cipher = A::new(key.as_slice().try_into().unwrap());
-    let nonce = key.as_slice().try_into().unwrap();
+    let key = Key::<A>::generate();
+    let nonce = Nonce::<A>::generate();
+    let cipher = A::new(&key);
 
-    b.iter(|| black_box(cipher.encrypt(nonce, plaintext.as_slice())));
+    b.iter(|| black_box(cipher.encrypt(&nonce, plaintext.as_slice())));
 }
 
 fn bench_for_size_inplace<A: KeyInit + AeadInOut>(
@@ -31,17 +28,14 @@ fn bench_for_size_inplace<A: KeyInit + AeadInOut>(
     rng: &mut dyn RngCore,
     size: usize,
 ) {
-    let mut key = vec![0u8; A::KeySize::USIZE];
-    rng.fill_bytes(key.as_mut_slice());
-    let mut nonce = vec![0u8; A::NonceSize::USIZE];
-    rng.fill_bytes(nonce.as_mut_slice());
     let mut buffer = vec![0u8; size + 16];
     rng.fill_bytes(buffer.as_mut_slice());
 
-    let cipher = A::new(key.as_slice().try_into().unwrap());
-    let nonce = key.as_slice().try_into().unwrap();
+    let key = Key::<A>::generate();
+    let nonce = Nonce::<A>::generate();
+    let cipher = A::new(&key);
 
-    b.iter(|| black_box(cipher.encrypt_in_place(nonce, b"", &mut buffer)));
+    b.iter(|| black_box(cipher.encrypt_in_place(&nonce, b"", &mut buffer)));
 }
 
 fn criterion_benchmark<A: KeyInit + Aead>(c: &mut Criterion, name: &str) {

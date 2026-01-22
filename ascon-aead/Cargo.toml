@@ -27,11 +27,12 @@ aead = { version = "0.6.0-rc.5", features = ["alloc"] }
 spectral = { version = "0.6", default-features = false }
 
 [features]
-default = ["std", "getrandom", "dep:zeroize"]
+default = ["std", "rand_core", "dep:zeroize"]
 std = ["alloc"]
 alloc = ["aead/alloc"]
 arrayvec = ["aead/arrayvec"]
 bytes = ["aead/bytes"]
+rand_core = ["aead/rand_core"]
 getrandom = ["aead/getrandom"]
 # will be added back to aead in 0.6.1
 # heapless = ["aead/heapless"]
