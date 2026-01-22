@@ -5,7 +5,7 @@ use std::hint::black_box;
 
 use ascon_hash::{AsconHash256, Digest};
 use criterion::{Bencher, BenchmarkId, Criterion, Throughput, criterion_group, criterion_main};
-use rand::{RngCore, SeedableRng, rngs::StdRng};
+use rand::RngCore;
 
 const KB: usize = 1024;
 
@@ -21,7 +21,7 @@ fn bench_for_size<H: Digest + Default>(b: &mut Bencher, rng: &mut dyn RngCore, s
 }
 
 fn criterion_benchmark<A: Digest + Default>(c: &mut Criterion, name: &str) {
-    let mut rng = StdRng::from_entropy();
+    let mut rng = rand::rng();
     let mut group = c.benchmark_group(name);
     for size in [KB, 2 * KB, 4 * KB, 8 * KB, 16 * KB, 32 * KB, 64 * KB].into_iter() {
         group.throughput(Throughput::Bytes(size as u64));

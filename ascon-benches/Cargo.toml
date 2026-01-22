@@ -11,7 +11,7 @@ ascon-aead = { path = "../ascon-aead" }
 ascon-hash = { path = "../ascon-hash" }
 
 [dev-dependencies]
-rand = "0.8"
+rand = "0.9"
 criterion = "0.8"
 
 [lib]

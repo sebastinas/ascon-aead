@@ -8,7 +8,7 @@ use ascon_aead::{
     aead::{Aead, AeadInOut, KeyInit, array::typenum::Unsigned},
 };
 use criterion::{Bencher, BenchmarkId, Criterion, Throughput, criterion_group, criterion_main};
-use rand::{RngCore, SeedableRng, rngs::StdRng};
+use rand::RngCore;
 
 const KB: usize = 1024;
 
@@ -45,7 +45,7 @@ fn bench_for_size_inplace<A: KeyInit + AeadInOut>(
 }
 
 fn criterion_benchmark<A: KeyInit + Aead>(c: &mut Criterion, name: &str) {
-    let mut rng = StdRng::from_entropy();
+    let mut rng = rand::rng();
     let mut group = c.benchmark_group(name);
     for size in [KB, 2 * KB, 4 * KB, 8 * KB, 16 * KB, 32 * KB, 64 * KB].iter() {
         group.throughput(Throughput::Bytes(*size as u64));
@@ -57,7 +57,7 @@ fn criterion_benchmark<A: KeyInit + Aead>(c: &mut Criterion, name: &str) {
 }
 
 fn criterion_benchmark_inplace<A: KeyInit + AeadInOut>(c: &mut Criterion, name: &str) {
-    let mut rng = StdRng::from_entropy();
+    let mut rng = rand::rng();
     let mut group = c.benchmark_group(name);
     for size in [KB, 2 * KB, 4 * KB, 8 * KB, 16 * KB, 32 * KB, 64 * KB].iter() {
         group.throughput(Throughput::Bytes(*size as u64));
