@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.4.0 (2025-03-23)
+
+* Bump `digest` to 0.11
+
 ## 0.4.0-pre.2 (2025-12-19)
 
 * Pre-release updated for `digest 0.11.0-rc.4`
