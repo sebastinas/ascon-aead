@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.6.0-pre.4 (2026-03-23)
+
+* Pre-release updated for `aead 0.6.0-rc.10`
+
 ## 0.6.0-pre.3 (2026-01-14)
 
 * Pre-release updated for `aead 0.6.0-rc.5`
