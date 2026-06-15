@@ -132,7 +132,7 @@ impl State {
     /// Convert state to bytes.
     pub fn as_bytes(&self) -> [u8; STATE_SIZE] {
         let mut bytes = [0u8; STATE_SIZE];
-        for (dst, src) in bytes.chunks_exact_mut(WORD_SIZE).zip(self.x.into_iter()) {
+        for (dst, src) in bytes.chunks_exact_mut(WORD_SIZE).zip(self.x) {
             dst.copy_from_slice(&u64::to_be_bytes(src));
         }
         bytes
