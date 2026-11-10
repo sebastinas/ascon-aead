@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.6.1 (2026-11-10)
+
+* Replace `subtle` with `ctutils` (see [RustCrypto/traits/#2275])
+
+[RustCrypto/traits/#2275]: https://github.com/RustCrypto/traits/issues/2275
+
 ## 0.6.0 (2026-06-15)
 
 * Update to `aead 0.6.0`

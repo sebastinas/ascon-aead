@@ -1,6 +1,6 @@
 [package]
 name = "ascon-aead"
-version = "0.6.0"
+version = "0.6.1"
 description = "Implementation of the authenticated encryption schemes Ascon-AEAD128"
 authors.workspace = true
 edition.workspace = true
