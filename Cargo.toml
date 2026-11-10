@@ -1,3 +1,10 @@
 [workspace]
 members = ["ascon-core", "ascon-aead", "ascon-hash", "ascon-benches"]
 resolver = "3"
+
+[workspace.package]
+authors = ["Sebastian Ramacher <sebastian.ramacher@ait.ac.at>"]
+edition = "2024"
+license = "Apache-2.0 OR MIT"
+categories = ["cryptography", "no-std"]
+rust-version = "1.85"

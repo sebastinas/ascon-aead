@@ -2,15 +2,15 @@
 name = "ascon-hash"
 version = "0.4.0"
 description = "Implementation of Ascon-Hash256 and Ascon-XOF128"
-authors = ["Sebastian Ramacher <sebastian.ramacher@ait.ac.at>"]
-license = "Apache-2.0 OR MIT"
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
 readme = "README.md"
-edition = "2024"
 documentation = "https://docs.rs/ascon-hash"
 repository = "https://github.com/sebastinas/ascon-aead/tree/main/ascon-hash"
 keywords = ["crypto", "hash", "ascon"]
 categories = ["cryptography", "no-std"]
-rust-version = "1.85"
+rust-version.workspace = true
 
 [dependencies]
 digest = "0.11.0"
