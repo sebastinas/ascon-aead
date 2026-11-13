@@ -8,7 +8,7 @@ license.workspace = true
 documentation = "https://docs.rs/ascon-core"
 repository = "https://github.com/sebastinas/ascon-aead/tree/main/ascon-core"
 keywords = ["Ascon", "crypto", "permutation"]
-categories = ["cryptography", "no-std"]
+categories.workspace = true
 readme = "README.md"
 rust-version.workspace = true
 
