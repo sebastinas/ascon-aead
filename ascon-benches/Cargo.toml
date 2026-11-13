@@ -6,11 +6,9 @@ license = "Apache-2.0 OR MIT"
 edition = "2024"
 rust-version = "1.86"
 
-[dependencies]
+[dev-dependencies]
 ascon-aead = { path = "../ascon-aead", features = ["getrandom", "rand_core"] }
 ascon-hash = { path = "../ascon-hash" }
-
-[dev-dependencies]
 rand = "0.9"
 criterion = "0.8"
 
