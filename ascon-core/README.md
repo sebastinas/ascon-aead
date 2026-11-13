@@ -27,7 +27,7 @@ target platform, though.
 
 ## Minimum Supported Rust Version
 
-This crate requires **Rust 1.85** at a minimum.
+This crate requires **Rust 1.88** at a minimum.
 
 ## License
 

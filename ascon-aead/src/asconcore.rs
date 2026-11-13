@@ -157,11 +157,8 @@ impl<'a, P: Parameters> AsconCore<'a, P> {
 
     fn process_associated_data(&mut self, associated_data: &[u8]) {
         if !associated_data.is_empty() {
-            // TODO: replace with as_chunks once stabilized
-            // https://github.com/rust-lang/rust/issues/74985
-
-            let mut blocks = associated_data.chunks_exact(16);
-            for block in blocks.by_ref() {
+            let (blocks, mut last_block) = associated_data.as_chunks::<16>();
+            for block in blocks {
                 // process full block of associated data
                 self.state[0] ^= u64_from_bytes(&block[..8]);
                 self.state[1] ^= u64_from_bytes(&block[8..16]);
@@ -169,7 +166,6 @@ impl<'a, P: Parameters> AsconCore<'a, P> {
             }
 
             // process partial block if it exists
-            let mut last_block = blocks.remainder();
             let sidx = if last_block.len() >= 8 {
                 self.state[0] ^= u64_from_bytes(&last_block[..8]);
                 last_block = &last_block[8..];

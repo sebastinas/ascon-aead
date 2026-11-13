@@ -7,4 +7,4 @@ authors = ["Sebastian Ramacher <sebastian.ramacher@ait.ac.at>"]
 edition = "2024"
 license = "Apache-2.0 OR MIT"
 categories = ["cryptography", "no-std"]
-rust-version = "1.85"
+rust-version = "1.88"

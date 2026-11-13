@@ -132,7 +132,7 @@ impl State {
     /// Convert state to bytes.
     pub fn as_bytes(&self) -> [u8; STATE_SIZE] {
         let mut bytes = [0u8; STATE_SIZE];
-        for (dst, src) in bytes.chunks_exact_mut(WORD_SIZE).zip(self.x) {
+        for (dst, src) in bytes.as_chunks_mut::<WORD_SIZE>().0.iter_mut().zip(self.x) {
             dst.copy_from_slice(&u64::to_be_bytes(src));
         }
         bytes
@@ -181,8 +181,8 @@ impl TryFrom<&[u8]> for State {
         }
 
         let mut state = Self::default();
-        for (src, dst) in value.chunks_exact(WORD_SIZE).zip(state.x.iter_mut()) {
-            *dst = u64::from_be_bytes(src.try_into().unwrap());
+        for (src, dst) in value.as_chunks::<WORD_SIZE>().0.iter().zip(state.x.iter_mut()) {
+            *dst = u64::from_be_bytes(*src);
         }
         Ok(state)
     }
@@ -191,8 +191,8 @@ impl TryFrom<&[u8]> for State {
 impl From<&[u8; STATE_SIZE]> for State {
     fn from(value: &[u8; STATE_SIZE]) -> Self {
         let mut state = Self::default();
-        for (src, dst) in value.chunks_exact(WORD_SIZE).zip(state.x.iter_mut()) {
-            *dst = u64::from_be_bytes(src.try_into().unwrap());
+        for (src, dst) in value.as_chunks::<WORD_SIZE>().0.iter().zip(state.x.iter_mut()) {
+            *dst = u64::from_be_bytes(*src);
         }
         state
     }
