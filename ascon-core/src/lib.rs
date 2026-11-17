@@ -1,4 +1,4 @@
-// Copyright 2021-2025 Sebastian Ramacher
+// Copyright 2021-2026 Sebastian Ramacher
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
 #![no_std]
@@ -181,7 +181,12 @@ impl TryFrom<&[u8]> for State {
         }
 
         let mut state = Self::default();
-        for (src, dst) in value.as_chunks::<WORD_SIZE>().0.iter().zip(state.x.iter_mut()) {
+        for (src, dst) in value
+            .as_chunks::<WORD_SIZE>()
+            .0
+            .iter()
+            .zip(state.x.iter_mut())
+        {
             *dst = u64::from_be_bytes(*src);
         }
         Ok(state)
@@ -191,7 +196,12 @@ impl TryFrom<&[u8]> for State {
 impl From<&[u8; STATE_SIZE]> for State {
     fn from(value: &[u8; STATE_SIZE]) -> Self {
         let mut state = Self::default();
-        for (src, dst) in value.as_chunks::<WORD_SIZE>().0.iter().zip(state.x.iter_mut()) {
+        for (src, dst) in value
+            .as_chunks::<WORD_SIZE>()
+            .0
+            .iter()
+            .zip(state.x.iter_mut())
+        {
             *dst = u64::from_be_bytes(*src);
         }
         state
