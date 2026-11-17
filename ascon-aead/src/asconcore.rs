@@ -1,4 +1,4 @@
-// Copyright 2021-2025 Sebastian Ramacher
+// Copyright 2021-2026 Sebastian Ramacher
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
 use core::{cmp::min, marker::PhantomData};
@@ -9,7 +9,7 @@ use aead::{
         Array, ArraySize,
         typenum::{IsGreaterOrEqual, IsLessOrEqual, Unsigned},
     },
-    consts::{True, U4, U16},
+    consts::{True, U4, U8, U16},
     inout::InOutBuf,
 };
 use ascon_core::State;
@@ -25,15 +25,6 @@ const fn pad(n: usize) -> u64 {
 #[inline(always)]
 const fn clear(word: u64, n: usize) -> u64 {
     word & (0x00ffffffffffffff << (n * 8))
-}
-
-// Helper functions to convert &[u8] to u64. Once the `processing_*`
-// functions are rewritten with `as_chunks`, they can be dropped.
-
-#[inline]
-fn u64_from_bytes(input: &[u8]) -> u64 {
-    // Soundness: function is always called with slices of the correct size
-    u64::from_le_bytes(input.try_into().unwrap())
 }
 
 #[inline]
@@ -73,7 +64,11 @@ impl InternalKey<U16> for InternalKey16 {
 
 impl From<&Array<u8, U16>> for InternalKey16 {
     fn from(key: &Array<u8, U16>) -> Self {
-        Self(u64_from_bytes(&key[..8]), u64_from_bytes(&key[8..]))
+        let (key_chunks, _) = key.as_chunks::<8>();
+        Self(
+            u64::from_le_bytes(key_chunks[0]),
+            u64::from_le_bytes(key_chunks[1]),
+        )
     }
 }
 
@@ -124,12 +119,13 @@ pub(crate) struct AsconCore<'a, P: Parameters> {
 
 impl<'a, P: Parameters> AsconCore<'a, P> {
     pub(crate) fn new(internal_key: &'a P::InternalKey, nonce: &Array<u8, U16>) -> Self {
+        let (nonce_chunks, _) = nonce.as_chunks::<8>();
         let mut state = State::new(
             P::IV,
             internal_key.get_k1(),
             internal_key.get_k2(),
-            u64_from_bytes(&nonce[..8]),
-            u64_from_bytes(&nonce[8..]),
+            u64::from_le_bytes(nonce_chunks[0]),
+            u64::from_le_bytes(nonce_chunks[1]),
         );
 
         state.permute_12();
@@ -157,22 +153,16 @@ impl<'a, P: Parameters> AsconCore<'a, P> {
 
     fn process_associated_data(&mut self, associated_data: &[u8]) {
         if !associated_data.is_empty() {
-            let (blocks, mut last_block) = associated_data.as_chunks::<16>();
-            for block in blocks {
-                // process full block of associated data
-                self.state[0] ^= u64_from_bytes(&block[..8]);
-                self.state[1] ^= u64_from_bytes(&block[8..16]);
-                self.permute_state();
+            let (chunks, last_block) = associated_data.as_chunks::<8>();
+            for (i, chunk) in chunks.iter().enumerate() {
+                self.state[i % 2] ^= u64::from_le_bytes(*chunk);
+                if i % 2 == 1 {
+                    self.permute_state();
+                }
             }
 
             // process partial block if it exists
-            let sidx = if last_block.len() >= 8 {
-                self.state[0] ^= u64_from_bytes(&last_block[..8]);
-                last_block = &last_block[8..];
-                1
-            } else {
-                0
-            };
+            let sidx = chunks.len() % 2;
             self.state[sidx] ^= pad(last_block.len());
             if !last_block.is_empty() {
                 self.state[sidx] ^= u64_from_bytes_partial(last_block);
@@ -185,26 +175,20 @@ impl<'a, P: Parameters> AsconCore<'a, P> {
     }
 
     fn process_encrypt_inout(&mut self, message: InOutBuf<'_, '_, u8>) {
-        let (blocks, mut last_block) = message.into_chunks::<U16>();
+        let (chunks, mut last_block) = message.into_chunks::<U8>();
+        let sidx = chunks.len() % 2;
 
-        for mut block in blocks {
-            // process full block of message
-            self.state[0] ^= u64_from_bytes(&block.get_in()[..8]);
-            block.get_out()[..8].copy_from_slice(&u64::to_le_bytes(self.state[0]));
-            self.state[1] ^= u64_from_bytes(&block.get_in()[8..16]);
-            block.get_out()[8..16].copy_from_slice(&u64::to_le_bytes(self.state[1]));
-            self.permute_state();
+        for (i, mut chunk) in chunks.into_iter().enumerate() {
+            self.state[i % 2] ^= u64::from_le_bytes((*chunk.get_in()).into());
+            chunk
+                .get_out()
+                .copy_from_slice(&self.state[i % 2].to_le_bytes());
+            if i % 2 == 1 {
+                self.permute_state();
+            }
         }
 
         // process partial block if it exists
-        let sidx = if last_block.len() >= 8 {
-            self.state[0] ^= u64_from_bytes(&last_block.get_in()[..8]);
-            last_block.get_out()[..8].copy_from_slice(&u64::to_le_bytes(self.state[0]));
-            (_, last_block) = last_block.split_at(8);
-            1
-        } else {
-            0
-        };
         self.state[sidx] ^= pad(last_block.len());
         if !last_block.is_empty() {
             self.state[sidx] ^= u64_from_bytes_partial(last_block.get_in());
@@ -216,28 +200,21 @@ impl<'a, P: Parameters> AsconCore<'a, P> {
     }
 
     fn process_decrypt_inout(&mut self, ciphertext: InOutBuf<'_, '_, u8>) {
-        let (blocks, mut last_block) = ciphertext.into_chunks::<U16>();
-        for mut block in blocks {
-            // process full block of ciphertext
-            let cx = u64_from_bytes(&block.get_in()[..8]);
-            block.get_out()[..8].copy_from_slice(&u64::to_le_bytes(self.state[0] ^ cx));
-            self.state[0] = cx;
-            let cx = u64_from_bytes(&block.get_in()[8..16]);
-            block.get_out()[8..16].copy_from_slice(&u64::to_le_bytes(self.state[1] ^ cx));
-            self.state[1] = cx;
-            self.permute_state();
+        let (chunks, mut last_block) = ciphertext.into_chunks::<U8>();
+        let sidx = chunks.len() % 2;
+
+        for (i, mut chunk) in chunks.into_iter().enumerate() {
+            let cx = u64::from_le_bytes((*chunk.get_in()).into());
+            chunk
+                .get_out()
+                .copy_from_slice(&(self.state[i % 2] ^ cx).to_le_bytes());
+            self.state[i % 2] = cx;
+            if i % 2 == 1 {
+                self.permute_state();
+            }
         }
 
         // process partial block if it exists
-        let sidx = if last_block.len() >= 8 {
-            let cx = u64_from_bytes(&last_block.get_in()[..8]);
-            last_block.get_out()[..8].copy_from_slice(&u64::to_le_bytes(self.state[0] ^ cx));
-            self.state[0] = cx;
-            (_, last_block) = last_block.split_at(8);
-            1
-        } else {
-            0
-        };
         self.state[sidx] ^= pad(last_block.len());
         if !last_block.is_empty() {
             let cx = u64_from_bytes_partial(last_block.get_in());
